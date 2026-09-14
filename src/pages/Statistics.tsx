@@ -8,9 +8,11 @@ import { AncientJournalPanel } from '../components/journal/AncientJournalPanel';
 import { RuneStatTablet } from '../components/journal/RuneStatTablet';
 import { RelicDisplay } from '../components/journal/RelicDisplay';
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  BarChart, ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, CartesianGrid, Legend
 } from 'recharts';
+
+
 import { Scroll, Sparkles } from 'lucide-react';
 
 interface StatsProps {
@@ -76,11 +78,15 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      // Deduplicate entries if both Bar and Line track 'total'
+      const uniquePayload = payload.filter((p: any, idx: number, arr: any[]) =>
+        arr.findIndex((x: any) => (x.dataKey || x.name) === (p.dataKey || p.name)) === idx
+      );
       return (
-        <div className="bg-white border-2 border-pink-500 rounded p-2 text-xs font-pixel shadow-xl text-slate-800">
-          <p className="text-pink-600 font-bold mb-1">{label}</p>
-          {payload.map((p: any, i: number) => (
-            <p key={i} style={{ color: p.fill || p.color }} className="flex justify-between gap-3 font-semibold">
+        <div className="bg-white border-2 border-pink-500 rounded-lg p-2.5 text-xs font-pixel shadow-xl text-slate-800">
+          <p className="text-pink-600 font-bold mb-1 border-b border-pink-100 pb-1">📅 {label}</p>
+          {uniquePayload.map((p: any, i: number) => (
+            <p key={i} style={{ color: p.color || p.fill || p.stroke || '#db2777' }} className="flex justify-between gap-3 font-semibold">
               <span>{p.name}:</span>
               <span className="font-mono font-bold">{Math.round(p.value)}m</span>
             </p>
@@ -90,6 +96,7 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
     }
     return null;
   };
+
 
   return (
     <div className="p-4 md:p-8 w-full animate-fade-up max-w-7xl mx-auto bg-[#fff5f8] text-slate-900">
@@ -243,14 +250,33 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
           </div>
 
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={dailyData} margin={{ top: 10, right: 10, bottom: 5, left: -15 }}>
+            <ComposedChart data={dailyData} margin={{ top: 15, right: 15, bottom: 5, left: -15 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#fce7f3" />
               <XAxis dataKey="label" tick={{ fill: '#db2777', fontSize: 10, fontFamily: 'Pixelify Sans, monospace' }} />
               <YAxis tick={{ fill: '#db2777', fontSize: 10, fontFamily: 'Pixelify Sans, monospace' }} unit="m" />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="total" fill="#ec4899" name="Minutes" radius={[2, 2, 0, 0]} />
-            </BarChart>
+              {/* Daily Study Bars */}
+              <Bar
+                dataKey="total"
+                fill="#f472b6"
+                opacity={0.65}
+                name="Minutes"
+                radius={[4, 4, 0, 0]}
+                barSize={32}
+              />
+              {/* Connected Node Line matching sketch */}
+              <Line
+                type="monotone"
+                dataKey="total"
+                stroke="#db2777"
+                strokeWidth={3}
+                name="Study Pulse"
+                dot={{ stroke: '#be185d', strokeWidth: 2.5, r: 5.5, fill: '#ffffff' }}
+                activeDot={{ stroke: '#9d174d', strokeWidth: 3.5, r: 8, fill: '#ec4899' }}
+              />
+            </ComposedChart>
           </ResponsiveContainer>
+
         </AncientJournalPanel>
       </div>
 

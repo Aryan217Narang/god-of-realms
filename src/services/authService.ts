@@ -58,21 +58,20 @@ function createDemoInitialState(): AppState {
   const now = Date.now();
   const sessions: StudySession[] = [];
 
-  // Create 14 realistic completed sessions across the last 7 days (2 per day)
+  // Create realistic completed sessions across the last 7 days with natural dynamic fluctuations
   const schedule: Array<{ daysAgo: number; subjectId: SubjectId; duration: number; target: string }> = [
-    { daysAgo: 6, subjectId: 'hda_cognitive', duration: 50, target: 'Plant Healing Lavender Garden' },
-    { daysAgo: 6, subjectId: 'nosql', duration: 50, target: 'Carve Runestone Archway' },
+    { daysAgo: 6, subjectId: 'hda_cognitive', duration: 45, target: 'Plant Healing Lavender Garden' },
     { daysAgo: 5, subjectId: 'daa', duration: 50, target: 'Pave Mossy Forest Path' },
-    { daysAgo: 5, subjectId: 'os', duration: 50, target: 'Place Stone Hiking Steps' },
-    { daysAgo: 4, subjectId: 'nosql', duration: 50, target: 'Excavate Sunken Plaza' },
-    { daysAgo: 4, subjectId: 'gv', duration: 50, target: 'Erect Graph Coordinate Pylon' },
-    { daysAgo: 3, subjectId: 'os', duration: 50, target: 'Kindle Campfire Hearth' },
-    { daysAgo: 3, subjectId: 'hda_cognitive', duration: 50, target: 'Carve Serene Reflection Pond' },
-    { daysAgo: 2, subjectId: 'gv', duration: 50, target: 'Weave Glowing Sky Ley Bridge' },
-    { daysAgo: 2, subjectId: 'daa', duration: 50, target: 'Nurture Mystic Mushroom Ring' },
-    { daysAgo: 1, subjectId: 'os', duration: 50, target: 'Carve Mountain Hiking Trail' },
-    { daysAgo: 1, subjectId: 'nosql', duration: 50, target: 'Erect Ancient City Obelisk' },
-    { daysAgo: 0, subjectId: 'daa', duration: 50, target: 'Plant Ancient Alpine Pine' },
+    { daysAgo: 5, subjectId: 'os', duration: 35, target: 'Place Stone Hiking Steps' },
+    { daysAgo: 4, subjectId: 'nosql', duration: 60, target: 'Excavate Sunken Plaza' },
+    { daysAgo: 4, subjectId: 'gv', duration: 60, target: 'Erect Graph Coordinate Pylon' },
+    { daysAgo: 3, subjectId: 'os', duration: 40, target: 'Kindle Campfire Hearth' },
+    { daysAgo: 3, subjectId: 'hda_cognitive', duration: 25, target: 'Carve Serene Reflection Pond' },
+    { daysAgo: 2, subjectId: 'gv', duration: 75, target: 'Weave Glowing Sky Ley Bridge' },
+    { daysAgo: 2, subjectId: 'daa', duration: 65, target: 'Nurture Mystic Mushroom Ring' },
+    { daysAgo: 1, subjectId: 'os', duration: 45, target: 'Carve Mountain Hiking Trail' },
+    { daysAgo: 1, subjectId: 'nosql', duration: 40, target: 'Erect Ancient City Obelisk' },
+    { daysAgo: 0, subjectId: 'daa', duration: 60, target: 'Plant Ancient Alpine Pine' },
     { daysAgo: 0, subjectId: 'hda_cognitive', duration: 50, target: 'Build Medical Research Pavilion' },
   ];
 
@@ -164,14 +163,23 @@ export async function seedDemoAccountIfNeeded(): Promise<void> {
   // Ensure pre-leveled realm progress exists for demo account
   const demoStorageKey = 'god_of_realms_user_usr_demo_hero';
   try {
-    const existing = localStorage.getItem(demoStorageKey);
-    if (!existing) {
+    const raw = localStorage.getItem(demoStorageKey);
+    // If not seeded or if it was the old flat 100m version, update to dynamic varied heights
+    let shouldReseed = !raw;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.sessions?.every((s: any) => s.durationMinutes === 50)) {
+        shouldReseed = true;
+      }
+    }
+    if (shouldReseed) {
       localStorage.setItem(demoStorageKey, JSON.stringify(createDemoInitialState()));
     }
   } catch (err) {
     console.error('Failed to seed demo realm state:', err);
   }
 }
+
 
 
 /**
