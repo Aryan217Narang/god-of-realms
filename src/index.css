@@ -1,5 +1,47 @@
 @import "tailwindcss";
 
+/* ============================================================
+   Digit & Numeric Glyphs Override for Pixelify Sans
+   Maps digits 0-9 and parentheses to crisp, highly readable monospace
+   so the number '5' never looks like 'S', '150m' never looks like '1S0m',
+   and parentheses '(' ')' don't render as curly braces.
+   ============================================================ */
+@font-face {
+  font-family: 'Pixelify Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Consolas'), local('Courier New'), local('Monaco'), local('SF Mono'), local('monospace');
+  unicode-range: U+0028-0029, U+0030-0039;
+}
+
+@font-face {
+  font-family: 'Pixelify Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: local('Consolas'), local('Courier New'), local('Monaco'), local('SF Mono'), local('monospace');
+  unicode-range: U+0028-0029, U+0030-0039;
+}
+
+@font-face {
+  font-family: 'Pixelify Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Consolas Bold'), local('Consolas'), local('Courier New Bold'), local('Courier New'), local('monospace');
+  unicode-range: U+0028-0029, U+0030-0039;
+}
+
+@font-face {
+  font-family: 'Pixelify Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Consolas Bold'), local('Consolas'), local('Courier New Bold'), local('Courier New'), local('monospace');
+  unicode-range: U+0028-0029, U+0030-0039;
+}
+
 @theme {
   /* White & Sakura Pink Aesthetic Pixel Palette */
   --color-pink-50: #fff5f8;
@@ -47,8 +89,8 @@
   /* Typography */
   --font-pixel: 'Pixelify Sans', cursive, sans-serif;
   --font-pixel-heading: 'Press Start 2P', monospace;
-  --font-pixel-mono: 'Silkscreen', 'VT323', monospace;
-  --font-mono: 'Silkscreen', 'Courier New', monospace;
+  --font-pixel-mono: 'Consolas', 'Courier New', monospace;
+  --font-mono: 'Consolas', 'Courier New', 'SF Mono', ui-monospace, monospace;
 }
 
 /* ============================================================
@@ -87,13 +129,19 @@ html, body {
 }
 
 .font-pixel-mono {
-  font-family: 'Silkscreen', 'VT323', monospace;
+  font-family: 'Consolas', 'Courier New', monospace;
   letter-spacing: 0.04em;
 }
 
 .font-mono {
-  font-family: 'Silkscreen', 'Courier New', monospace !important;
-  letter-spacing: 0.03em;
+  font-family: 'Consolas', 'Courier New', 'SF Mono', ui-monospace, monospace !important;
+  letter-spacing: 0.02em;
+}
+
+.font-num {
+  font-family: 'Consolas', 'Courier New', 'SF Mono', ui-monospace, monospace !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
 }
 
 .achievement-desc {

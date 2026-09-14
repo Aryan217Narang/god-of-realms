@@ -38,6 +38,9 @@ const LABELS: Record<SubjectId, string> = {
 export const Statistics: React.FC<StatsProps> = ({ state }) => {
   const [period, setPeriod] = useState<7 | 30>(7);
   const [piePeriod, setPiePeriod] = useState<'today' | '7d' | '30d' | 'all'>('today');
+  const [selectedBarDate, setSelectedBarDate] = useState<string | null>(null);
+  const [selectedBarLabel, setSelectedBarLabel] = useState<string | null>(null);
+
   const sessions = state.sessions;
   const timeFormat = state.settings.timeFormat || 'hours_decimal';
 
@@ -60,15 +63,27 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
   // Daily chart data
   const dailyData = getDailyStudyData(sessions, period);
 
-  // Subject distribution for Pie Chart (Supports Today / Daily, 7 Days, 30 Days, All Time)
+  // Helper to extract minutes for a specific ISO date (YYYY-MM-DD)
+  const getSubjectMinutesForDate = (dateStr: string, subjectId: SubjectId): number => {
+    return sessions
+      .filter(s => s.completed && s.subjectId === subjectId && s.startTime.slice(0, 10) === dateStr)
+      .reduce((sum, s) => sum + s.durationMinutes, 0);
+  };
+
+  // Subject distribution for Pie Chart (Supports clicked bar date, Today, 7 Days, 30 Days, All Time)
   const subjectDistribution = SUBJECT_IDS.map(id => {
-    const mins = piePeriod === 'today'
-      ? getSubjectMinutesForPeriod(sessions, id, 'today')
-      : piePeriod === '7d'
-      ? getSubjectMinutesForPeriod(sessions, id, 'week')
-      : piePeriod === '30d'
-      ? getSubjectMinutesForPeriod(sessions, id, 'month')
-      : getSubjectMinutesForPeriod(sessions, id, 'all');
+    let mins = 0;
+    if (selectedBarDate) {
+      mins = getSubjectMinutesForDate(selectedBarDate, id);
+    } else if (piePeriod === 'today') {
+      mins = getSubjectMinutesForPeriod(sessions, id, 'today');
+    } else if (piePeriod === '7d') {
+      mins = getSubjectMinutesForPeriod(sessions, id, 'week');
+    } else if (piePeriod === '30d') {
+      mins = getSubjectMinutesForPeriod(sessions, id, 'month');
+    } else {
+      mins = getSubjectMinutesForPeriod(sessions, id, 'all');
+    }
     return {
       id,
       name: LABELS[id],
@@ -99,14 +114,23 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
         arr.findIndex((x: any) => (x.dataKey || x.name) === (p.dataKey || p.name)) === idx
       );
       return (
-        <div className="bg-white border-2 border-pink-500 rounded-lg p-2.5 text-xs font-pixel shadow-xl text-slate-800">
-          <p className="text-pink-600 font-bold mb-1 border-b border-pink-100 pb-1">📅 {label}</p>
-          {uniquePayload.map((p: any, i: number) => (
-            <p key={i} style={{ color: p.color || p.fill || p.stroke || '#db2777' }} className="flex justify-between gap-3 font-semibold">
-              <span>{p.name}:</span>
-              <span className="font-mono font-bold">{formatTime(Number(p.value), timeFormat)}</span>
-            </p>
-          ))}
+        <div className="bg-white dark:bg-slate-900 border-2 border-pink-500 dark:border-pink-400 rounded-lg p-2.5 text-xs font-mono shadow-xl text-slate-800 dark:text-slate-100">
+          <p className="text-pink-600 dark:text-pink-400 font-bold mb-1 border-b border-pink-100 dark:border-slate-800 pb-1 flex items-center justify-between gap-2">
+            <span>📅 {label}</span>
+            <span className="text-[10px] text-slate-400 font-normal">Click bar to view</span>
+          </p>
+          {uniquePayload.map((p: any, i: number) => {
+            const isTotal = p.name === 'Minutes' || p.name === 'Total' || p.name === 'Study Time' || p.name === 'Study Pulse';
+            const labelName = isTotal
+              ? (timeFormat.startsWith('hours') ? 'Study Time' : 'Minutes')
+              : p.name;
+            return (
+              <p key={i} style={{ color: p.color || p.fill || p.stroke || '#db2777' }} className="flex justify-between gap-3 font-semibold">
+                <span>{labelName}:</span>
+                <span className="font-bold">{formatTime(Number(p.value), timeFormat)}</span>
+              </p>
+            );
+          })}
         </div>
       );
     }
@@ -132,9 +156,9 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
         </div>
         <div className="flex items-center gap-3 bg-white border-2 border-pink-200 px-4 py-2.5 rounded shadow-[3px_3px_0px_#fbcfe8]">
           <Sparkles className="w-4 h-4 text-pink-500" />
-          <div className="text-xs font-pixel">
-            <span className="text-slate-500 block text-[10px] uppercase">All-Time Scholarship</span>
-            <span className="text-pink-600 font-bold">{formatTime(allMin, timeFormat)} Recorded</span>
+          <div className="text-xs">
+            <span className="text-slate-500 block text-[10px] uppercase font-pixel">All-Time Scholarship</span>
+            <span className="text-pink-600 font-mono font-bold text-sm">{formatTime(allMin, timeFormat)} Recorded</span>
           </div>
         </div>
       </div>
@@ -221,7 +245,7 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
             </div>
           </div>
           <div className="text-right">
-            <div className="text-lg font-pixel-heading text-pink-600">
+            <div className="text-xl font-mono font-bold text-pink-600">
               {formatTime(mostStudied.minutes, timeFormat)}
             </div>
             <div className="text-[10px] font-pixel text-slate-500">Channeled Time</div>
@@ -237,56 +261,127 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-pink-200 pb-3">
             <div>
-              <h3 className="text-sm font-pixel-heading text-pink-950">
-                DAILY STUDY ARCHIVE
-              </h3>
-              <p className="text-xs font-pixel text-slate-500">
-                Hours and minutes invested across day intervals
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm font-pixel-heading text-pink-950">
+                  DAILY STUDY ARCHIVE
+                </h3>
+                {selectedBarDate && (
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-pink-500 text-white animate-pulse">
+                    Selected: {selectedBarLabel || selectedBarDate}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs font-pixel text-slate-500 mt-0.5">
+                Hours and minutes invested across day intervals • <span className="text-pink-600 font-bold">Click any bar to inspect in pie chart below</span>
               </p>
             </div>
 
-            <div className="flex gap-1 bg-pink-50 p-1 rounded border border-pink-200 self-start sm:self-auto">
-              <button
-                onClick={() => setPeriod(7)}
-                className={`px-3 py-1 rounded text-xs font-pixel cursor-pointer transition-all ${
-                  period === 7 ? 'bg-pink-500 text-white font-bold shadow-sm' : 'text-slate-600 hover:text-pink-700'
-                }`}
-              >
-                7 Days
-              </button>
-              <button
-                onClick={() => setPeriod(30)}
-                className={`px-3 py-1 rounded text-xs font-pixel cursor-pointer transition-all ${
-                  period === 30 ? 'bg-pink-500 text-white font-bold shadow-sm' : 'text-slate-600 hover:text-pink-700'
-                }`}
-              >
-                30 Days
-              </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {selectedBarDate && (
+                <button
+                  onClick={() => {
+                    setSelectedBarDate(null);
+                    setSelectedBarLabel(null);
+                  }}
+                  className="px-2.5 py-1 rounded bg-rose-100 text-rose-800 text-[11px] font-mono font-bold hover:bg-rose-200 cursor-pointer border border-rose-300"
+                  title="Clear selected date"
+                >
+                  ✕ Clear
+                </button>
+              )}
+              <div className="flex gap-1 bg-pink-50 p-1 rounded border border-pink-200 self-start sm:self-auto">
+                <button
+                  onClick={() => {
+                    setPeriod(7);
+                    setSelectedBarDate(null);
+                    setSelectedBarLabel(null);
+                  }}
+                  className={`px-3 py-1 rounded text-xs font-mono font-bold cursor-pointer transition-all ${
+                    period === 7 ? 'bg-pink-500 text-white shadow-sm' : 'text-slate-600 hover:text-pink-700'
+                  }`}
+                >
+                  7 Days
+                </button>
+                <button
+                  onClick={() => {
+                    setPeriod(30);
+                    setSelectedBarDate(null);
+                    setSelectedBarLabel(null);
+                  }}
+                  className={`px-3 py-1 rounded text-xs font-mono font-bold cursor-pointer transition-all ${
+                    period === 30 ? 'bg-pink-500 text-white shadow-sm' : 'text-slate-600 hover:text-pink-700'
+                  }`}
+                >
+                  30 Days
+                </button>
+              </div>
             </div>
           </div>
 
           <ResponsiveContainer width="100%" height={240}>
-            <ComposedChart data={dailyData} margin={{ top: 15, right: 15, bottom: 5, left: -15 }}>
+            <ComposedChart
+              data={dailyData}
+              margin={{ top: 15, right: 15, bottom: 5, left: -15 }}
+              className="cursor-pointer"
+              onClick={(e: any) => {
+                if (e && e.activePayload && e.activePayload.length > 0) {
+                  const entry = e.activePayload[0].payload;
+                  if (entry && entry.date) {
+                    setSelectedBarDate(entry.date);
+                    setSelectedBarLabel(entry.label);
+                  }
+                }
+              }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#fce7f3" />
-              <XAxis dataKey="label" tick={{ fill: '#db2777', fontSize: 10, fontFamily: 'Pixelify Sans, monospace' }} />
-              <YAxis tick={{ fill: '#db2777', fontSize: 10, fontFamily: 'Pixelify Sans, monospace' }} unit="m" />
+              <XAxis dataKey="label" tick={{ fill: '#db2777', fontSize: 10, fontFamily: 'Consolas, "Courier New", monospace' }} />
+              <YAxis
+                tick={{ fill: '#db2777', fontSize: 10, fontFamily: 'Consolas, "Courier New", monospace' }}
+                tickFormatter={(val) => {
+                  if (timeFormat.startsWith('hours')) {
+                    if (val === 0) return '0h';
+                    const h = Math.round((val / 60) * 10) / 10;
+                    return h % 1 === 0 ? `${h}h` : `${h.toFixed(1)}h`;
+                  }
+                  return `${val}m`;
+                }}
+              />
               <Tooltip content={<CustomTooltip />} />
-              {/* Daily Study Bars */}
+              {/* Daily Study Bars with Interactive Bar Click */}
               <Bar
                 dataKey="total"
-                fill="#f472b6"
-                opacity={0.65}
-                name="Minutes"
+                name={timeFormat.startsWith('hours') ? 'Study Time' : 'Minutes'}
                 radius={[4, 4, 0, 0]}
                 barSize={32}
-              />
+                cursor="pointer"
+                onClick={(entry: any) => {
+                  const payload = entry && (entry.payload || entry);
+                  if (payload && payload.date) {
+                    setSelectedBarDate(payload.date);
+                    setSelectedBarLabel(payload.label);
+                  }
+                }}
+              >
+                {dailyData.map((entry) => {
+                  const isSelected = selectedBarDate === entry.date;
+                  return (
+                    <Cell
+                      key={entry.date}
+                      fill={isSelected ? '#db2777' : '#f472b6'}
+                      stroke={isSelected ? '#9d174d' : 'transparent'}
+                      strokeWidth={isSelected ? 2.5 : 0}
+                      opacity={selectedBarDate ? (isSelected ? 1 : 0.45) : 0.75}
+                    />
+                  );
+                })}
+              </Bar>
               {/* Connected Node Line matching sketch */}
               <Line
                 type="monotone"
                 dataKey="total"
                 stroke="#db2777"
                 strokeWidth={3}
-                name="Study Pulse"
+                name={timeFormat.startsWith('hours') ? 'Study Time' : 'Minutes'}
                 dot={{ stroke: '#be185d', strokeWidth: 2.5, r: 5.5, fill: '#ffffff' }}
                 activeDot={{ stroke: '#9d174d', strokeWidth: 3.5, r: 8, fill: '#ec4899' }}
               />
@@ -305,33 +400,63 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-pink-200 pb-3">
             <div>
-              <h3 className="text-sm font-pixel-heading text-pink-950">
-                SCHOLARSHIP HARMONY
-              </h3>
-              <p className="text-xs font-pixel text-slate-500">
-                {piePeriod === 'today' ? "Today's daily subject breakdown" : 'Proportion of time across each realm'}
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm font-pixel-heading text-pink-950">
+                  SCHOLARSHIP HARMONY
+                </h3>
+                {selectedBarDate && (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-pink-500 text-white font-bold animate-pulse">
+                    📅 {selectedBarLabel || selectedBarDate}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs font-pixel text-slate-500 mt-0.5">
+                {selectedBarDate
+                  ? `Showing subject breakdown for ${selectedBarLabel || selectedBarDate}`
+                  : piePeriod === 'today'
+                  ? "Today's daily subject breakdown"
+                  : 'Proportion of time across each realm'}
               </p>
             </div>
 
-            <div className="flex gap-1 bg-pink-50 p-1 rounded border border-pink-200 self-start sm:self-auto flex-wrap">
-              {[
-                { id: 'today', label: '📅 Today' },
-                { id: '7d', label: '7 Days' },
-                { id: '30d', label: '30 Days' },
-                { id: 'all', label: 'All Time' },
-              ].map(p => (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {selectedBarDate && (
                 <button
-                  key={p.id}
-                  onClick={() => setPiePeriod(p.id as any)}
-                  className={`px-2.5 py-1 rounded text-[11px] font-pixel cursor-pointer transition-all ${
-                    piePeriod === p.id
-                      ? 'bg-pink-500 text-white font-bold shadow-sm'
-                      : 'text-slate-600 hover:text-pink-700'
-                  }`}
+                  onClick={() => {
+                    setSelectedBarDate(null);
+                    setSelectedBarLabel(null);
+                    setPiePeriod('today');
+                  }}
+                  className="px-2 py-1 rounded bg-rose-100 text-rose-800 hover:bg-rose-200 text-[11px] font-mono font-bold cursor-pointer border border-rose-300"
+                  title="Reset to today"
                 >
-                  {p.label}
+                  ✕ Reset
                 </button>
-              ))}
+              )}
+              <div className="flex gap-1 bg-pink-50 p-1 rounded border border-pink-200 self-start sm:self-auto flex-wrap">
+                {[
+                  { id: 'today', label: '📅 Today' },
+                  { id: '7d', label: '7 Days' },
+                  { id: '30d', label: '30 Days' },
+                  { id: 'all', label: 'All Time' },
+                ].map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      setSelectedBarDate(null);
+                      setSelectedBarLabel(null);
+                      setPiePeriod(p.id as any);
+                    }}
+                    className={`px-2.5 py-1 rounded text-[11px] font-mono font-bold cursor-pointer transition-all ${
+                      !selectedBarDate && piePeriod === p.id
+                        ? 'bg-pink-500 text-white shadow-sm'
+                        : 'text-slate-600 hover:text-pink-700'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -363,11 +488,11 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
                       borderRadius: '8px',
                       color: state.settings.theme === 'dark' ? '#f8fafc' : '#1e1b2e',
                       fontSize: '11px',
-                      fontFamily: 'monospace',
+                      fontFamily: 'Consolas, "Courier New", monospace',
                       fontWeight: 'bold',
                     }}
                   />
-                  <Legend formatter={(v) => <span style={{ fontSize: 11, fontFamily: 'Pixelify Sans, monospace', color: '#9d174d' }}>{v}</span>} />
+                  <Legend formatter={(v) => <span style={{ fontSize: 11, fontFamily: 'Consolas, "Courier New", monospace', color: '#9d174d' }}>{v}</span>} />
                 </PieChart>
               </ResponsiveContainer>
 
@@ -389,18 +514,22 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
           ) : (
             <div className="text-center py-12 font-pixel text-slate-500 text-xs space-y-2">
               <div className="text-2xl">🌱</div>
-              <p className="font-bold text-slate-700">No study sessions logged {piePeriod === 'today' ? 'today' : 'in this period'} yet.</p>
+              <p className="font-bold text-slate-700">
+                {selectedBarDate
+                  ? `No study sessions logged on ${selectedBarLabel || selectedBarDate}.`
+                  : `No study sessions logged ${piePeriod === 'today' ? 'today' : 'in this period'} yet.`}
+              </p>
               <p className="text-[11px] text-slate-400">Complete a study session or toggle to view past periods:</p>
               <div className="flex justify-center gap-2 pt-2">
                 <button
-                  onClick={() => setPiePeriod('7d')}
-                  className="px-2.5 py-1 rounded bg-pink-100 text-pink-800 text-xs font-pixel hover:bg-pink-200 cursor-pointer border border-pink-300"
+                  onClick={() => { setSelectedBarDate(null); setSelectedBarLabel(null); setPiePeriod('7d'); }}
+                  className="px-2.5 py-1 rounded bg-pink-100 text-pink-800 text-xs font-mono font-bold hover:bg-pink-200 cursor-pointer border border-pink-300"
                 >
                   View 7 Days
                 </button>
                 <button
-                  onClick={() => setPiePeriod('all')}
-                  className="px-2.5 py-1 rounded bg-pink-100 text-pink-800 text-xs font-pixel hover:bg-pink-200 cursor-pointer border border-pink-300"
+                  onClick={() => { setSelectedBarDate(null); setSelectedBarLabel(null); setPiePeriod('all'); }}
+                  className="px-2.5 py-1 rounded bg-pink-100 text-pink-800 text-xs font-mono font-bold hover:bg-pink-200 cursor-pointer border border-pink-300"
                 >
                   View All Time
                 </button>

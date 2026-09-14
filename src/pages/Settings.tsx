@@ -267,7 +267,7 @@ export const Settings: React.FC<SettingsProps> = ({ state, onUpdateSettings, onR
                     <span className="text-slate-900 font-pixel text-xs block font-bold">
                       Time Representation Unit
                     </span>
-                    <span className="text-[11px] font-pixel text-slate-500">
+                    <span className="text-[11px] font-sans text-slate-500">
                       Display study time in decimal hours (e.g. 2.5h), hours & mins, or minutes
                     </span>
                   </div>
@@ -286,7 +286,7 @@ export const Settings: React.FC<SettingsProps> = ({ state, onUpdateSettings, onR
                         key={fmt.id}
                         type="button"
                         onClick={() => onUpdateSettings({ timeFormat: fmt.id as TimeFormat })}
-                        className={`px-2.5 py-1 text-xs font-pixel rounded border font-bold transition-all cursor-pointer ${
+                        className={`px-2.5 py-1 text-xs font-mono rounded border font-bold transition-all cursor-pointer ${
                           active
                             ? 'bg-pink-500 text-white border-pink-600 shadow-sm'
                             : 'bg-white border-pink-200 text-slate-600 hover:bg-pink-50'
