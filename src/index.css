@@ -1,0 +1,581 @@
+@import "tailwindcss";
+
+@theme {
+  /* White & Sakura Pink Aesthetic Pixel Palette */
+  --color-pink-50: #fff5f8;
+  --color-pink-100: #fdf2f8;
+  --color-pink-200: #fce7f3;
+  --color-pink-soft: #fbcfe8;
+  --color-pink-blossom: #f472b6;
+  --color-pink-vivid: #ec4899;
+  --color-pink-deep: #db2777;
+  --color-pink-dark: #be185d;
+  --color-magenta: #9d174d;
+
+  --color-white-pure: #ffffff;
+  --color-white-soft: #fffbfc;
+  --color-cream-light: #fffdfa;
+
+  --color-ink-dark: #1e1b2e;
+  --color-ink-mid: #374151;
+  --color-ink-muted: #6b7280;
+
+  --color-gold: #f59e0b;
+  --color-gold-light: #fef08a;
+
+  /* Subject theme colors */
+  --color-daa: #10b981;
+  --color-daa-dark: #047857;
+  --color-daa-glow: #6ee7b7;
+
+  --color-os: #0284c7;
+  --color-os-dark: #0369a1;
+  --color-os-glow: #7dd3fc;
+
+  --color-nosql: #ec4899;
+  --color-nosql-dark: #be185d;
+  --color-nosql-glow: #fbcfe8;
+
+  --color-hda: #a855f7;
+  --color-hda-dark: #7e22ce;
+  --color-hda-glow: #e9d5ff;
+
+  --color-gv: #f97316;
+  --color-gv-dark: #c2410c;
+  --color-gv-glow: #fed7aa;
+
+  /* Typography */
+  --font-pixel: 'Pixelify Sans', cursive, sans-serif;
+  --font-pixel-heading: 'Press Start 2P', monospace;
+  --font-pixel-mono: 'Silkscreen', 'VT323', monospace;
+}
+
+/* ============================================================
+   Global Reset & White-and-Pink Background
+   ============================================================ */
+html, body {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background-color: #fff5f8;
+  color: #1e1b2e;
+  font-family: 'Pixelify Sans', cursive, sans-serif;
+  image-rendering: pixelated;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #fff5f8;
+}
+
+/* ============================================================
+   Typography Classes
+   ============================================================ */
+.font-pixel {
+  font-family: 'Pixelify Sans', cursive, sans-serif;
+}
+
+.font-pixel-heading {
+  font-family: 'Press Start 2P', monospace;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+}
+
+.font-pixel-mono {
+  font-family: 'Silkscreen', 'VT323', monospace;
+  letter-spacing: 0.04em;
+}
+
+/* Map legacy font-journal classes to pixel fonts */
+.font-journal {
+  font-family: 'Pixelify Sans', cursive, sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.font-journal-dec {
+  font-family: 'Press Start 2P', monospace;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+}
+
+/* ============================================================
+   Pixel-Art Stepped Borders & Containers (White & Pink)
+   ============================================================ */
+
+/* Crisp Pixel Box Shadow (2px / 3px stepped borders) */
+.pixel-box-forest {
+  background-color: #ffffff;
+  border: 3px solid #fbcfe8;
+  box-shadow: 
+    3px 3px 0px #f472b6,
+    inset 2px 2px 0px rgba(255, 255, 255, 0.9);
+}
+
+.pixel-box-parchment {
+  background-color: #ffffff;
+  color: #1e1b2e;
+  border: 3px solid #f472b6;
+  box-shadow: 
+    3px 3px 0px #fbcfe8,
+    inset 2px 2px 0px rgba(255, 255, 255, 0.8);
+}
+
+.pixel-box-pink {
+  background-color: #fff0f5;
+  border: 3px solid #ec4899;
+  box-shadow: 
+    3px 3px 0px #db2777,
+    inset 2px 2px 0px rgba(244, 114, 182, 0.2);
+}
+
+/* Legacy container mapping to clean white & pink styles */
+.journal-panel {
+  background: #ffffff;
+  border: 3px solid #f472b6;
+  box-shadow: 
+    4px 4px 0px #fbcfe8,
+    inset 2px 2px 0px rgba(255, 255, 255, 0.9);
+  position: relative;
+}
+
+.journal-stone {
+  background: #ffffff;
+  border: 3px solid #fbcfe8;
+  box-shadow: 4px 4px 0px #f472b6;
+}
+
+.journal-wood {
+  background: #fff8fa;
+  border: 3px solid #f472b6;
+  box-shadow: 4px 4px 0px #ec4899;
+}
+
+/* ============================================================
+   Pixel Buttons
+   ============================================================ */
+.pixel-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  padding: 10px 16px;
+  border: 2px solid #db2777;
+  box-shadow: 3px 3px 0px #f472b6;
+  transition: all 0.1s ease;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-transform: uppercase;
+}
+
+.pixel-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px #db2777;
+}
+
+.pixel-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px #f472b6;
+}
+
+.pixel-btn-pink {
+  background-color: #ec4899;
+  color: #ffffff;
+  border-color: #db2777;
+}
+.pixel-btn-pink:hover {
+  background-color: #db2777;
+}
+
+.pixel-btn-green {
+  background-color: #f472b6;
+  color: #ffffff;
+  border-color: #ec4899;
+}
+.pixel-btn-green:hover {
+  background-color: #ec4899;
+}
+
+.pixel-btn-parchment {
+  background-color: #ffffff;
+  color: #db2777;
+  border-color: #f472b6;
+}
+.pixel-btn-parchment:hover {
+  background-color: #fff0f5;
+}
+
+.pixel-btn-forest {
+  background-color: #ffffff;
+  color: #be185d;
+  border-color: #f472b6;
+}
+.pixel-btn-forest:hover {
+  background-color: #fdf2f8;
+  color: #9d174d;
+}
+
+/* Legacy rune button mapped to pixel button */
+.rune-btn {
+  font-family: 'Pixelify Sans', cursive, sans-serif;
+  background-color: #ffffff;
+  border: 2px solid #f472b6;
+  color: #db2777;
+  box-shadow: 2px 2px 0px #fbcfe8;
+  transition: all 0.15s ease;
+}
+
+.rune-btn:hover {
+  background-color: #fff0f5;
+  border-color: #ec4899;
+  color: #9d174d;
+}
+
+/* ============================================================
+   Animations & Pixel Foliage
+   ============================================================ */
+@keyframes sway {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(2.5deg);
+  }
+}
+
+@keyframes sway-reverse {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-2.5deg);
+  }
+}
+
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes pulse-pink {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.05);
+  }
+}
+
+.animate-sway {
+  animation: sway 4s ease-in-out infinite;
+  transform-origin: top left;
+}
+
+.animate-sway-rev {
+  animation: sway-reverse 4.5s ease-in-out infinite;
+  transform-origin: top right;
+}
+
+.animate-float {
+  animation: float-gentle 3.5s ease-in-out infinite;
+}
+
+.animate-pulse-pink {
+  animation: pulse-pink 2.5s ease-in-out infinite;
+}
+
+/* Pixel-art scrollbars (White & Pink) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #fff5f8;
+}
+::-webkit-scrollbar-thumb {
+  background: #f472b6;
+  border: 2px solid #fff5f8;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ec4899;
+}
+
+/* ============================================================
+   DARK MODE OVERRIDES (data-theme="dark")
+   ============================================================ */
+html[data-theme="dark"],
+body.theme-dark,
+.theme-dark {
+  background-color: #090d16 !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] #root,
+html[data-theme="dark"] main,
+.theme-dark main,
+html[data-theme="dark"] [class*="bg-[#fff5f8]"],
+.theme-dark [class*="bg-[#fff5f8]"] {
+  background-color: #090d16 !important;
+  color: #f1f5f9 !important;
+}
+
+/* Dark Mode Panels & Cards */
+html[data-theme="dark"] aside,
+html[data-theme="dark"] .bg-white,
+.theme-dark aside,
+.theme-dark .bg-white {
+  background-color: #111827 !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] [class*="from-[#fff0f5]"],
+html[data-theme="dark"] [class*="from-pink-50"],
+.theme-dark [class*="from-[#fff0f5]"] {
+  background: #0f172a !important;
+}
+
+html[data-theme="dark"] .bg-pink-50,
+html[data-theme="dark"] .bg-pink-100,
+html[data-theme="dark"] [class*="bg-[#fff0f5]"],
+html[data-theme="dark"] [class*="bg-[#fdf2f8]"],
+.theme-dark .bg-pink-50 {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+/* Dark Mode Borders */
+html[data-theme="dark"] .border-pink-100,
+html[data-theme="dark"] .border-pink-200,
+html[data-theme="dark"] .border-pink-300,
+.theme-dark .border-pink-200 {
+  border-color: #1e293b !important;
+}
+
+html[data-theme="dark"] .border-pink-400,
+html[data-theme="dark"] .border-pink-500,
+.theme-dark .border-pink-400 {
+  border-color: #f59e0b !important;
+}
+
+/* Dark Mode Text - Radiant Warm Gold & Crisp Slate */
+html[data-theme="dark"] .text-slate-900,
+html[data-theme="dark"] .text-slate-800,
+html[data-theme="dark"] .text-slate-700,
+html[data-theme="dark"] .text-pink-950,
+.theme-dark .text-slate-800 {
+  color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .text-slate-600,
+html[data-theme="dark"] .text-slate-500,
+html[data-theme="dark"] .text-slate-400,
+.theme-dark .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .text-pink-600,
+html[data-theme="dark"] .text-pink-700,
+html[data-theme="dark"] .text-pink-800,
+html[data-theme="dark"] .text-pink-900,
+.theme-dark .text-pink-600 {
+  color: #fbbf24 !important;
+}
+
+/* Dark Mode Countdown Timer Digits: Radiant Gold Hourglass */
+html[data-theme="dark"] .timer-digits {
+  color: #fbbf24 !important;
+  text-shadow: 0 0 16px rgba(251, 191, 36, 0.45) !important;
+  filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.4)) !important;
+}
+
+/* Dark Mode Shadows */
+html[data-theme="dark"] [class*="shadow-[3px_3px_0px_#f472b6]"],
+html[data-theme="dark"] [class*="shadow-[4px_4px_0px_#fbcfe8]"],
+html[data-theme="dark"] [class*="shadow-[4px_4px_0px_#f472b6]"],
+html[data-theme="dark"] [class*="shadow-[2px_2px_0px_#f472b6]"] {
+  box-shadow: 3px 3px 0px #020617 !important;
+}
+
+/* Dark Mode Panels & Buttons */
+html[data-theme="dark"] .journal-panel,
+html[data-theme="dark"] .journal-stone {
+  background-color: #111827 !important;
+  border-color: #f59e0b !important;
+  box-shadow: 4px 4px 0px #020617 !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .realm-card {
+  background-color: #111827 !important;
+  border-color: #1e293b !important;
+  box-shadow: 4px 4px 0px #020617 !important;
+}
+
+html[data-theme="dark"] .realm-card:hover {
+  border-color: #fbbf24 !important;
+  box-shadow: 4px 4px 0px #b45309 !important;
+}
+
+/* Dark Mode Primary Buttons: Rich Torchlight Amber */
+html[data-theme="dark"] .pixel-btn-pink {
+  background-color: #f59e0b !important;
+  border-color: #d97706 !important;
+  box-shadow: 3px 3px 0px #78350f !important;
+  color: #090d16 !important;
+  font-weight: bold !important;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: #090d16;
+}
+html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #f59e0b;
+  border: 2px solid #090d16;
+}
+
+/* ============================================================
+   WHITE MODE OVERRIDES (data-theme="white")
+   ============================================================ */
+html[data-theme="white"],
+body.theme-white,
+.theme-white {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="white"] body,
+html[data-theme="white"] #root,
+html[data-theme="white"] main,
+.theme-white main,
+html[data-theme="white"] [class*="bg-[#fff5f8]"],
+.theme-white [class*="bg-[#fff5f8]"] {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* White Mode Panels & Cards */
+html[data-theme="white"] aside,
+html[data-theme="white"] .bg-white,
+.theme-white aside,
+.theme-white .bg-white {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="white"] [class*="from-[#fff0f5]"],
+html[data-theme="white"] [class*="from-pink-50"],
+.theme-white [class*="from-[#fff0f5]"] {
+  background: #f1f5f9 !important;
+}
+
+html[data-theme="white"] .bg-pink-50,
+html[data-theme="white"] .bg-pink-100,
+html[data-theme="white"] [class*="bg-[#fff0f5]"],
+html[data-theme="white"] [class*="bg-[#fdf2f8]"],
+.theme-white .bg-pink-50 {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* White Mode Borders */
+html[data-theme="white"] .border-pink-100,
+html[data-theme="white"] .border-pink-200,
+.theme-white .border-pink-200 {
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme="white"] .border-pink-300,
+html[data-theme="white"] .border-pink-400,
+.theme-white .border-pink-400 {
+  border-color: #cbd5e1 !important;
+}
+
+html[data-theme="white"] .border-pink-500 {
+  border-color: #0f172a !important;
+}
+
+/* White Mode Text - Crisp Charcoal Onyx & Warm Amber Accents (No Blue!) */
+html[data-theme="white"] .text-slate-900,
+html[data-theme="white"] .text-slate-800,
+html[data-theme="white"] .text-pink-800,
+html[data-theme="white"] .text-pink-900,
+html[data-theme="white"] .text-pink-950,
+.theme-white .text-slate-800 {
+  color: #0f172a !important;
+}
+
+html[data-theme="white"] .text-slate-600,
+html[data-theme="white"] .text-slate-500,
+.theme-white .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* White Mode Accents & Titles: Warm Amber Gold instead of Blue */
+html[data-theme="white"] .text-pink-600,
+html[data-theme="white"] .text-pink-700,
+.theme-white .text-pink-600 {
+  color: #b45309 !important;
+}
+
+/* White Mode Countdown Timer Digits: Razor Sharp Deep Charcoal */
+html[data-theme="white"] .timer-digits {
+  color: #0f172a !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08)) !important;
+}
+
+/* White Mode Shadows */
+html[data-theme="white"] [class*="shadow-[3px_3px_0px_#f472b6]"],
+html[data-theme="white"] [class*="shadow-[4px_4px_0px_#fbcfe8]"],
+html[data-theme="white"] [class*="shadow-[4px_4px_0px_#f472b6]"],
+html[data-theme="white"] [class*="shadow-[2px_2px_0px_#f472b6]"] {
+  box-shadow: 3px 3px 0px #cbd5e1 !important;
+}
+
+/* White Mode Panels & Buttons */
+html[data-theme="white"] .journal-panel,
+html[data-theme="white"] .journal-stone {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 4px 4px 0px #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="white"] .realm-card {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 4px 4px 0px #e2e8f0 !important;
+}
+
+html[data-theme="white"] .realm-card:hover {
+  border-color: #0f172a !important;
+  box-shadow: 4px 4px 0px #94a3b8 !important;
+}
+
+/* White Mode Primary Button: Deep Obsidian Onyx with White Text */
+html[data-theme="white"] .pixel-btn-pink {
+  background-color: #0f172a !important;
+  border-color: #020617 !important;
+  box-shadow: 3px 3px 0px #94a3b8 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="white"] ::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+html[data-theme="white"] ::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border: 2px solid #f8fafc;
+}
