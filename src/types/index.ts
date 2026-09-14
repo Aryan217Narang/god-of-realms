@@ -73,6 +73,7 @@ export interface AchievementCondition {
 }
 
 export type ThemeMode = 'pink' | 'dark' | 'white';
+export type TimeFormat = 'hours_decimal' | 'hours_mins' | 'minutes' | 'both';
 
 export interface AppSettings {
   studyDurationMinutes: number;
@@ -82,6 +83,7 @@ export interface AppSettings {
   soundEnabled: boolean;
   animationsEnabled: boolean;
   theme: ThemeMode;
+  timeFormat?: TimeFormat;
   subjectOverrides: Record<SubjectId, { name?: string; shortName?: string }>;
 }
 

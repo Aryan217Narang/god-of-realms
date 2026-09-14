@@ -225,7 +225,7 @@ export const Achievements: React.FC<AchievementsProps> = ({ state }) => {
                         )}
                       </div>
 
-                      <p className="achievement-desc text-xs font-pixel text-slate-600 leading-relaxed mb-2">
+                      <p className="achievement-desc text-xs font-sans text-slate-600 dark:text-slate-300 leading-relaxed mb-2">
                         {achievement.description}
                       </p>
 

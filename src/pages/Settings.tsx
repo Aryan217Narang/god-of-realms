@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
-import type { AppState, SubjectId } from '../types';
+import type { AppState, SubjectId, TimeFormat } from '../types';
 import { AncientJournalPanel } from '../components/journal/AncientJournalPanel';
-import { Settings as SettingsIcon, Volume2, VolumeX, Sun, Moon, Download, Upload, Trash2, Sparkles, Sliders, ShieldAlert, BookOpen } from 'lucide-react';
+import { Settings as SettingsIcon, Volume2, VolumeX, Sun, Moon, Download, Upload, Trash2, Sparkles, Sliders, ShieldAlert, BookOpen, Clock } from 'lucide-react';
 
 interface SettingsProps {
   state: AppState;
@@ -254,6 +254,48 @@ export const Settings: React.FC<SettingsProps> = ({ state, onUpdateSettings, onR
                       {mode === 'pink' ? '🌸 Pink' : mode === 'dark' ? '🌙 Dark' : '☀️ White'}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Time Representation Unit: Decimal Hours (2.5h), Hours & Mins (2h 30m), Minutes (150m), Both */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded bg-pink-50 border border-pink-300 flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-pink-600" />
+                  </div>
+                  <div>
+                    <span className="text-slate-900 font-pixel text-xs block font-bold">
+                      Time Representation Unit
+                    </span>
+                    <span className="text-[11px] font-pixel text-slate-500">
+                      Display study time in decimal hours (e.g. 2.5h), hours & mins, or minutes
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[
+                    { id: 'hours_decimal', label: '2.5h (Decimal)' },
+                    { id: 'hours_mins', label: '2h 30m' },
+                    { id: 'minutes', label: '150m' },
+                    { id: 'both', label: '2.5h (150m)' },
+                  ].map(fmt => {
+                    const currentFormat = s.timeFormat || 'hours_decimal';
+                    const active = currentFormat === fmt.id;
+                    return (
+                      <button
+                        key={fmt.id}
+                        type="button"
+                        onClick={() => onUpdateSettings({ timeFormat: fmt.id as TimeFormat })}
+                        className={`px-2.5 py-1 text-xs font-pixel rounded border font-bold transition-all cursor-pointer ${
+                          active
+                            ? 'bg-pink-500 text-white border-pink-600 shadow-sm'
+                            : 'bg-white border-pink-200 text-slate-600 hover:bg-pink-50'
+                        }`}
+                      >
+                        {fmt.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>

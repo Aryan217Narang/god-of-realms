@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import type { AppState, SubjectId } from '../types';
 import {
   getDailyStudyData, getTotalMinutesForPeriod,
-  getSubjectMinutesForPeriod, formatMinutes, calculateStreak
+  getSubjectMinutesForPeriod, formatTime, calculateStreak
 } from '../utils/gameLogic';
 import { AncientJournalPanel } from '../components/journal/AncientJournalPanel';
 import { RuneStatTablet } from '../components/journal/RuneStatTablet';
@@ -37,7 +37,9 @@ const LABELS: Record<SubjectId, string> = {
 
 export const Statistics: React.FC<StatsProps> = ({ state }) => {
   const [period, setPeriod] = useState<7 | 30>(7);
+  const [piePeriod, setPiePeriod] = useState<'today' | '7d' | '30d' | 'all'>('today');
   const sessions = state.sessions;
+  const timeFormat = state.settings.timeFormat || 'hours_decimal';
 
   const todayMin = getTotalMinutesForPeriod(sessions, 'today');
   const weekMin = getTotalMinutesForPeriod(sessions, 'week');
@@ -58,14 +60,27 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
   // Daily chart data
   const dailyData = getDailyStudyData(sessions, period);
 
-  // Subject distribution
-  const subjectDistribution = SUBJECT_IDS.map(id => ({
-    name: LABELS[id],
-    value: getSubjectMinutesForPeriod(sessions, id, 'all'),
-    color: COLORS[id],
-  })).filter(d => d.value > 0);
+  // Subject distribution for Pie Chart (Supports Today / Daily, 7 Days, 30 Days, All Time)
+  const subjectDistribution = SUBJECT_IDS.map(id => {
+    const mins = piePeriod === 'today'
+      ? getSubjectMinutesForPeriod(sessions, id, 'today')
+      : piePeriod === '7d'
+      ? getSubjectMinutesForPeriod(sessions, id, 'week')
+      : piePeriod === '30d'
+      ? getSubjectMinutesForPeriod(sessions, id, 'month')
+      : getSubjectMinutesForPeriod(sessions, id, 'all');
+    return {
+      id,
+      name: LABELS[id],
+      shortName: state.subjects[id].shortName,
+      value: mins,
+      color: COLORS[id],
+    };
+  }).filter(d => d.value > 0);
 
-  // Realm progress data
+  const totalPieMinutes = subjectDistribution.reduce((sum, d) => sum + d.value, 0);
+
+  // Realm progress data with today's minutes
   const realmProgress = SUBJECT_IDS.map(id => ({
     id,
     name: LABELS[id],
@@ -73,6 +88,7 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
     level: state.subjects[id].level,
     elements: state.subjects[id].unlockedElements.length,
     minutes: state.subjects[id].totalMinutes,
+    todayMinutes: getSubjectMinutesForPeriod(sessions, id, 'today'),
     color: COLORS[id],
   }));
 
@@ -88,7 +104,7 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
           {uniquePayload.map((p: any, i: number) => (
             <p key={i} style={{ color: p.color || p.fill || p.stroke || '#db2777' }} className="flex justify-between gap-3 font-semibold">
               <span>{p.name}:</span>
-              <span className="font-mono font-bold">{Math.round(p.value)}m</span>
+              <span className="font-mono font-bold">{formatTime(Number(p.value), timeFormat)}</span>
             </p>
           ))}
         </div>
@@ -118,7 +134,7 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
           <Sparkles className="w-4 h-4 text-pink-500" />
           <div className="text-xs font-pixel">
             <span className="text-slate-500 block text-[10px] uppercase">All-Time Scholarship</span>
-            <span className="text-pink-600 font-bold">{formatMinutes(allMin)} Recorded</span>
+            <span className="text-pink-600 font-bold">{formatTime(allMin, timeFormat)} Recorded</span>
           </div>
         </div>
       </div>
@@ -127,28 +143,28 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <RuneStatTablet
           label="Today's Focus"
-          value={formatMinutes(todayMin)}
+          value={formatTime(todayMin, timeFormat)}
           subValue="Session study"
           icon="hourglass"
           color="#ec4899"
         />
         <RuneStatTablet
           label="Seven-Day Yield"
-          value={formatMinutes(weekMin)}
+          value={formatTime(weekMin, timeFormat)}
           subValue="Weekly tally"
           icon="trophy"
           color="#f43f5e"
         />
         <RuneStatTablet
           label="Monthly Arc"
-          value={formatMinutes(monthMin)}
+          value={formatTime(monthMin, timeFormat)}
           subValue="Monthly tally"
           icon="compass"
           color="#f59e0b"
         />
         <RuneStatTablet
           label="All-Time Mastery"
-          value={formatMinutes(allMin)}
+          value={formatTime(allMin, timeFormat)}
           subValue="Total focus time"
           icon="scroll"
           color="#db2777"
@@ -180,7 +196,7 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
         />
         <RuneStatTablet
           label="Daily Average"
-          value={formatMinutes(avgDaily)}
+          value={formatTime(avgDaily, timeFormat)}
           subValue="Per active day"
           icon="compass"
           color="#db2777"
@@ -206,7 +222,7 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
           </div>
           <div className="text-right">
             <div className="text-lg font-pixel-heading text-pink-600">
-              {formatMinutes(mostStudied.minutes)}
+              {formatTime(mostStudied.minutes, timeFormat)}
             </div>
             <div className="text-[10px] font-pixel text-slate-500">Channeled Time</div>
           </div>
@@ -287,43 +303,113 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
           variant="stone"
           className="border-pink-300 shadow-[4px_4px_0px_#fbcfe8]"
         >
-          <div className="mb-4 border-b border-pink-200 pb-3">
-            <h3 className="text-sm font-pixel-heading text-pink-950">
-              SCHOLARSHIP HARMONY
-            </h3>
-            <p className="text-xs font-pixel text-slate-500">
-              Proportion of time across each realm
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-pink-200 pb-3">
+            <div>
+              <h3 className="text-sm font-pixel-heading text-pink-950">
+                SCHOLARSHIP HARMONY
+              </h3>
+              <p className="text-xs font-pixel text-slate-500">
+                {piePeriod === 'today' ? "Today's daily subject breakdown" : 'Proportion of time across each realm'}
+              </p>
+            </div>
+
+            <div className="flex gap-1 bg-pink-50 p-1 rounded border border-pink-200 self-start sm:self-auto flex-wrap">
+              {[
+                { id: 'today', label: '📅 Today' },
+                { id: '7d', label: '7 Days' },
+                { id: '30d', label: '30 Days' },
+                { id: 'all', label: 'All Time' },
+              ].map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => setPiePeriod(p.id as any)}
+                  className={`px-2.5 py-1 rounded text-[11px] font-pixel cursor-pointer transition-all ${
+                    piePeriod === p.id
+                      ? 'bg-pink-500 text-white font-bold shadow-sm'
+                      : 'text-slate-600 hover:text-pink-700'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {subjectDistribution.length > 0 ? (
-            <ResponsiveContainer width="100%" height={230}>
-              <PieChart>
-                <Pie
-                  data={subjectDistribution}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  innerRadius={30}
-                  dataKey="value"
-                  paddingAngle={4}
-                >
-                  {subjectDistribution.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} stroke="#ffffff" strokeWidth={2} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(v: any) => [`${Math.round(v)}m`, 'Time']} />
-                <Legend formatter={(v) => <span style={{ fontSize: 11, fontFamily: 'Pixelify Sans, monospace', color: '#9d174d' }}>{v}</span>} />
-              </PieChart>
-            </ResponsiveContainer>
+            <div>
+              <ResponsiveContainer width="100%" height={210}>
+                <PieChart>
+                  <Pie
+                    data={subjectDistribution}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    innerRadius={32}
+                    dataKey="value"
+                    paddingAngle={4}
+                  >
+                    {subjectDistribution.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} stroke="#ffffff" strokeWidth={2} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(v: any, name: any) => [
+                      `${formatTime(Number(v), timeFormat)} (${totalPieMinutes > 0 ? Math.round((Number(v) / totalPieMinutes) * 100) : 0}%)`,
+                      name
+                    ]}
+                    contentStyle={{
+                      backgroundColor: state.settings.theme === 'dark' ? '#111827' : '#ffffff',
+                      borderColor: state.settings.theme === 'dark' ? '#374151' : '#f472b6',
+                      borderRadius: '8px',
+                      color: state.settings.theme === 'dark' ? '#f8fafc' : '#1e1b2e',
+                      fontSize: '11px',
+                      fontFamily: 'monospace',
+                      fontWeight: 'bold',
+                    }}
+                  />
+                  <Legend formatter={(v) => <span style={{ fontSize: 11, fontFamily: 'Pixelify Sans, monospace', color: '#9d174d' }}>{v}</span>} />
+                </PieChart>
+              </ResponsiveContainer>
+
+              {/* Subject Breakdown List with Daily Minutes */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 pt-3 border-t border-pink-100">
+                {subjectDistribution.map(sub => (
+                  <div key={sub.id} className="flex items-center justify-between text-xs font-pixel p-1.5 rounded bg-pink-50/50">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: sub.color }} />
+                      <span className="truncate font-semibold">{sub.shortName}</span>
+                    </div>
+                    <span className="font-mono font-bold text-pink-700 text-[11px]">
+                      {formatTime(sub.value, timeFormat)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : (
-            <div className="text-center py-16 font-pixel text-slate-400 text-xs">
-              No study logs recorded yet.<br />Complete your first session to view distribution!
+            <div className="text-center py-12 font-pixel text-slate-500 text-xs space-y-2">
+              <div className="text-2xl">🌱</div>
+              <p className="font-bold text-slate-700">No study sessions logged {piePeriod === 'today' ? 'today' : 'in this period'} yet.</p>
+              <p className="text-[11px] text-slate-400">Complete a study session or toggle to view past periods:</p>
+              <div className="flex justify-center gap-2 pt-2">
+                <button
+                  onClick={() => setPiePeriod('7d')}
+                  className="px-2.5 py-1 rounded bg-pink-100 text-pink-800 text-xs font-pixel hover:bg-pink-200 cursor-pointer border border-pink-300"
+                >
+                  View 7 Days
+                </button>
+                <button
+                  onClick={() => setPiePeriod('all')}
+                  className="px-2.5 py-1 rounded bg-pink-100 text-pink-800 text-xs font-pixel hover:bg-pink-200 cursor-pointer border border-pink-300"
+                >
+                  View All Time
+                </button>
+              </div>
             </div>
           )}
         </AncientJournalPanel>
 
-        {/* Realm Level Progress Bars */}
+        {/* Realm Level Progress Bars with Today's Study Minutes */}
         <AncientJournalPanel
           variant="stone"
           className="border-pink-300 shadow-[4px_4px_0px_#fbcfe8]"
@@ -333,25 +419,41 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
               ISOMETRIC REALM DEVELOPMENT
             </h3>
             <p className="text-xs font-pixel text-slate-500">
-              Restoration and architecture levels
+              Restoration levels and daily focus invested today
             </p>
           </div>
 
-          <div className="space-y-4 py-1">
+          <div className="space-y-3.5 py-1">
             {realmProgress.map(r => (
-              <div key={r.name} className="space-y-1">
-                <div className="flex items-center justify-between text-xs font-pixel">
+              <div key={r.name} className="space-y-1.5 p-2 rounded-lg bg-pink-50/40 border border-pink-100 hover:bg-pink-50/80 transition-colors">
+                <div className="flex flex-wrap items-center justify-between gap-1 text-xs font-pixel">
                   <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: r.color }} />
                     <span className="font-bold" style={{ color: r.color }}>{r.name}</span>
-                    <span className="text-slate-600 text-[11px] truncate max-w-[160px] md:max-w-none">— {r.realmName}</span>
+                    <span className="text-slate-600 text-[11px] truncate max-w-[140px] sm:max-w-none">— {r.realmName}</span>
                   </div>
-                  <div className="text-pink-700 font-mono text-[11px] font-bold">
-                    Lv.{r.level} • {r.elements} monuments
+                  <div className="flex items-center gap-2 font-mono text-[11px] font-bold">
+                    {/* Minutes / Hours spent today on this subject */}
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] flex items-center gap-1 ${
+                        r.todayMinutes > 0
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm'
+                          : 'bg-slate-100 text-slate-500 border border-slate-200'
+                      }`}
+                      title={`Today's study time in ${r.name}`}
+                    >
+                      <span>⏱️ Today:</span>
+                      <span className="font-bold">{formatTime(r.todayMinutes, timeFormat)}</span>
+                    </span>
+
+                    <span className="text-pink-700 bg-pink-100/60 px-1.5 py-0.5 rounded border border-pink-200">
+                      Lv.{r.level} • {r.elements} monuments
+                    </span>
                   </div>
                 </div>
-                <div className="w-full h-2.5 bg-pink-100 rounded overflow-hidden border border-pink-200">
+                <div className="w-full h-2.5 bg-pink-100 rounded-full overflow-hidden border border-pink-200">
                   <div
-                    className="h-full rounded transition-all duration-700"
+                    className="h-full rounded-full transition-all duration-700"
                     style={{
                       width: `${Math.min(100, (r.level / 10) * 100)}%`,
                       backgroundColor: r.color,

@@ -48,6 +48,7 @@
   --font-pixel: 'Pixelify Sans', cursive, sans-serif;
   --font-pixel-heading: 'Press Start 2P', monospace;
   --font-pixel-mono: 'Silkscreen', 'VT323', monospace;
+  --font-mono: 'Silkscreen', 'Courier New', monospace;
 }
 
 /* ============================================================
@@ -88,6 +89,17 @@ html, body {
 .font-pixel-mono {
   font-family: 'Silkscreen', 'VT323', monospace;
   letter-spacing: 0.04em;
+}
+
+.font-mono {
+  font-family: 'Silkscreen', 'Courier New', monospace !important;
+  letter-spacing: 0.03em;
+}
+
+.achievement-desc {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+  font-size: 0.775rem !important;
+  letter-spacing: 0.01em;
 }
 
 /* Map legacy font-journal classes to pixel fonts */

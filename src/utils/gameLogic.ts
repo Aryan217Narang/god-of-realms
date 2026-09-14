@@ -1,4 +1,4 @@
-import type { SubjectId, Subject, Achievement, AppState, StudySession } from '../types';
+import type { SubjectId, Subject, Achievement, AppState, StudySession, TimeFormat } from '../types';
 
 // ============================================================
 // XP & Level System
@@ -54,7 +54,53 @@ export function todayDateString(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function formatMinutes(minutes: number): string {
+export function formatTime(
+  minutes: number,
+  format: TimeFormat = 'hours_decimal'
+): string {
+  const roundedMin = Math.round(minutes);
+
+  if (format === 'minutes') {
+    return `${roundedMin}m`;
+  }
+
+  // Decimal hours e.g. 2.5h, 0.5h, 4.5h
+  const decimalVal = minutes / 60;
+  const roundedDecimal = Math.round(decimalVal * 10) / 10;
+  const decimalStr = roundedDecimal % 1 === 0
+    ? `${roundedDecimal}h`
+    : `${roundedDecimal.toFixed(1)}h`;
+
+  if (format === 'hours_decimal') {
+    return decimalStr;
+  }
+
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  let hmStr = '';
+  if (h === 0) {
+    hmStr = `${m}m`;
+  } else if (m === 0) {
+    hmStr = `${h}h`;
+  } else {
+    hmStr = `${h}h ${m}m`;
+  }
+
+  if (format === 'hours_mins') {
+    return hmStr;
+  }
+
+  // 'both' (e.g. 2.5h [150m] or 2h 30m [150m])
+  if (minutes >= 60) {
+    return `${decimalStr} (${roundedMin}m)`;
+  }
+  return `${roundedMin}m`;
+}
+
+export function formatMinutes(minutes: number, format?: TimeFormat): string {
+  if (format) {
+    return formatTime(minutes, format);
+  }
   if (minutes < 60) return `${Math.round(minutes)}m`;
   const h = Math.floor(minutes / 60);
   const m = Math.round(minutes % 60);
@@ -707,6 +753,7 @@ export function getDefaultState(): AppState {
       soundEnabled: true,
       animationsEnabled: true,
       theme: 'pink',
+      timeFormat: 'hours_decimal',
       subjectOverrides: { daa: {}, os: {}, nosql: {}, hda_cognitive: {}, gv: {} },
     },
     lastDailyReset: today,
