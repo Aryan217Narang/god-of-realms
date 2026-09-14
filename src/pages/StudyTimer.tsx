@@ -7,6 +7,7 @@ import { RelicDisplay } from '../components/journal/RelicDisplay';
 import { VineDecoration } from '../components/journal/VineDecoration';
 import { ProgressBar } from '../components/ui';
 import { REALM_PRESETS, getRandomRealmPreset } from '../constants/presets';
+import { soundManager } from '../utils/audio';
 import {
   Play,
   Pause,
@@ -19,7 +20,9 @@ import {
   Hammer,
   Dices,
   Pencil,
-  Check
+  Check,
+  AppWindow,
+  VolumeX,
 } from 'lucide-react';
 
 interface TimerProps {
@@ -33,7 +36,10 @@ interface TimerProps {
   onStartBreak: (type: 'shortBreak' | 'longBreak') => void;
   getElapsedMs: () => number;
   getRemainingMs: () => number;
+  showMiniTimer?: boolean;
+  onToggleMiniTimer?: () => void;
 }
+
 
 const SUBJECT_IDS: SubjectId[] = ['daa', 'os', 'nosql', 'hda_cognitive', 'gv'];
 
@@ -56,7 +62,10 @@ export const StudyTimer: React.FC<TimerProps> = ({
   onStartBreak,
   getElapsedMs,
   getRemainingMs,
+  showMiniTimer,
+  onToggleMiniTimer,
 }) => {
+
   // Controlled realm selection: defaults to initialSubjectId or stored or 'daa'
   const [selectedSubject, setSelectedSubject] = useState<SubjectId>(
     initialSubjectId || state.timer.selectedSubject || 'daa'
@@ -103,21 +112,29 @@ export const StudyTimer: React.FC<TimerProps> = ({
       const rem = getRemainingMs();
       setRemainingMs(rem);
 
-      if (rem <= 0 && timer.isRunning && !timer.isPaused && !completedRef.current && isStudyMode) {
+      if (rem <= 0 && timer.isRunning && !timer.isPaused && !completedRef.current) {
         completedRef.current = true;
-        const elapsed = Math.max(1, Math.floor(getElapsedMs() / 60000));
-        const earned = elapsed + 25; // 1 XP per minute + 25 XP bonus
-        setLastMinutes(elapsed);
-        setLastXP(earned);
-        setLastProject(timer.currentBuildTarget || '');
-        onComplete(elapsed);
-        setShowCelebration(true);
-        setTimeout(() => setShowCelebration(false), 7000);
+        // Ring 5-second melodic royal chime alarm
+        soundManager.playTimerCompletionAlarm(5000);
+
+        if (isStudyMode) {
+          const elapsed = Math.max(1, Math.floor(getElapsedMs() / 60000));
+          const earned = elapsed + 25; // 1 XP per minute + 25 XP bonus
+          setLastMinutes(elapsed);
+          setLastXP(earned);
+          setLastProject(timer.currentBuildTarget || '');
+          onComplete(elapsed);
+          setShowCelebration(true);
+          setTimeout(() => setShowCelebration(false), 7000);
+        } else {
+          onReset();
+        }
         setTimeout(() => { completedRef.current = false; }, 8000);
       }
     }, 200);
     return () => clearInterval(interval);
-  }, [timer, getRemainingMs, getElapsedMs, onComplete, isStudyMode]);
+  }, [timer, getRemainingMs, getElapsedMs, onComplete, onReset, isStudyMode]);
+
 
   const handleSelectRealm = (id: SubjectId) => {
     setSelectedSubject(id);
@@ -196,8 +213,19 @@ export const StudyTimer: React.FC<TimerProps> = ({
               <div className="mt-1.5 text-[11px] font-pixel text-pink-600 font-bold flex items-center justify-center gap-1">
                 <span>🌿 Realm Expanded · Sacred Relic Awakened!</span>
               </div>
+              <div className="mt-2.5 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => soundManager.stopAlarm()}
+                  className="px-3 py-1 rounded bg-pink-100 hover:bg-pink-200 border border-pink-400 text-pink-800 text-xs font-pixel font-bold flex items-center gap-1.5 cursor-pointer shadow-sm transition-colors"
+                >
+                  <VolumeX className="w-3.5 h-3.5" />
+                  <span>Silence Alarm</span>
+                </button>
+              </div>
             </div>
           )}
+
 
           {/* Realm Selector Buttons (When Timer Not Active) */}
           {!isActive && (
@@ -451,6 +479,26 @@ export const StudyTimer: React.FC<TimerProps> = ({
               )}
             </div>
 
+            {/* Mini Floating Timer (Clock App Style) toggle */}
+            {onToggleMiniTimer && (
+              <div className="w-full flex justify-center mt-3 pt-2.5 border-t border-pink-100/60">
+                <button
+                  type="button"
+                  onClick={onToggleMiniTimer}
+                  title={showMiniTimer ? 'Dock Floating Mini Clock' : 'Float Mini Clock (Clock App style in top-right)'}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-pixel font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    showMiniTimer
+                      ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-sm'
+                      : 'bg-pink-50 hover:bg-pink-100 text-pink-700 border-pink-300'
+                  }`}
+                >
+                  <AppWindow className="w-3.5 h-3.5" />
+                  <span>{showMiniTimer ? 'Dock Mini Clock' : 'Float Mini Clock (PiP / Top Right)'}</span>
+                </button>
+              </div>
+            )}
+
+
             {/* Respite Buttons */}
             {!isActive && (
               <div className="flex items-center justify-center gap-3 mt-3 pt-2.5 border-t border-pink-100 w-full">
@@ -501,29 +549,29 @@ export const StudyTimer: React.FC<TimerProps> = ({
       </div>
 
       {/* ===== RIGHT PANEL — Live 3D Isometric Realm Mini-World ===== */}
-      <div className="flex-1 min-h-[420px] lg:min-h-screen relative overflow-hidden bg-gradient-to-b from-[#fff0f5] via-white to-[#fdf2f8] flex flex-col justify-between p-4 lg:p-7">
+      <div className="flex-1 min-h-[420px] lg:min-h-screen relative overflow-hidden realm-stage-backdrop flex flex-col justify-between p-4 lg:p-7">
         {/* Top Floating Realm Status Header */}
-        <div className="relative z-20 flex items-center justify-between gap-4 bg-white/95 border-2 border-pink-200 p-3.5 rounded-lg shadow-md backdrop-blur-sm">
+        <div className="relative z-20 flex items-center justify-between gap-4 realm-status-header border-2 p-3.5 rounded-lg shadow-md backdrop-blur-sm">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-[10px] font-pixel-heading px-2 py-0.5 rounded bg-pink-100 border border-pink-400 text-pink-700 font-bold">
+              <span className="text-[10px] font-pixel-heading px-2 py-0.5 rounded bg-pink-100 border border-pink-400 text-pink-700 font-bold realm-badge">
                 {currentSubject.shortName}
               </span>
-              <span className="text-xs font-pixel font-bold text-slate-900">
+              <span className="text-xs font-pixel font-bold realm-title">
                 {currentSubject.realmName}
               </span>
             </div>
-            <div className="text-xs font-pixel text-slate-500">
+            <div className="text-xs font-pixel text-slate-500 realm-shrine">
               {theme.shrine}
             </div>
           </div>
 
-          <div className="flex items-center gap-3 text-xs font-pixel">
-            <div className="flex items-center gap-1 text-orange-600 bg-orange-50 px-2.5 py-1 rounded border border-orange-200 font-bold">
+          <div className="flex items-center gap-2.5 text-xs font-pixel">
+            <div className="flex items-center gap-1 text-orange-600 bg-orange-50 px-2.5 py-1 rounded border border-orange-200 font-bold realm-streak-pill">
               <Flame className="w-3.5 h-3.5 text-orange-500" />
               <span>{currentSubject.currentStreak}d Streak</span>
             </div>
-            <div className="flex items-center gap-1 text-pink-700 bg-pink-50 px-2.5 py-1 rounded border border-pink-200 font-bold">
+            <div className="flex items-center gap-1 text-pink-700 bg-pink-50 px-2.5 py-1 rounded border border-pink-200 font-bold realm-level-pill">
               <Star className="w-3.5 h-3.5 fill-pink-500 text-pink-500" />
               <span>Level {lvl.level}</span>
             </div>
@@ -544,10 +592,11 @@ export const StudyTimer: React.FC<TimerProps> = ({
         </div>
 
         {/* Bottom Tips */}
-        <div className="relative z-20 text-center text-xs font-pixel text-slate-600 bg-white/95 p-2 rounded border border-pink-200 shadow-sm">
+        <div className="relative z-20 text-center text-xs font-pixel realm-tips-bar p-2 rounded border shadow-sm">
           💡 Focus study sessions expand this realm with stepped cliff masonry, crystal waters, and sacred relics!
         </div>
       </div>
+
     </div>
   );
 };

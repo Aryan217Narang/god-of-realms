@@ -59,7 +59,7 @@ export const Achievements: React.FC<AchievementsProps> = ({ state }) => {
             Permanent accolades bestowed upon scholars who push past exhaustion, maintain unbroken streaks, and develop the five miniature realms.
           </p>
         </div>
-        <div className="flex items-center gap-3 bg-white border-2 border-pink-200 px-4 py-2.5 rounded shadow-[3px_3px_0px_#fbcfe8]">
+        <div className="achievement-rank-card flex items-center gap-3 bg-white border-2 border-pink-200 px-4 py-2.5 rounded shadow-[3px_3px_0px_#fbcfe8]">
           <Sparkles className="w-4 h-4 text-pink-500" />
           <div className="text-xs font-pixel">
             <span className="text-slate-500 block text-[10px] uppercase">Honorary Rank</span>
@@ -114,7 +114,7 @@ export const Achievements: React.FC<AchievementsProps> = ({ state }) => {
       </div>
 
       {/* Filters Toolbar */}
-      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-3 rounded-lg border-2 border-pink-200 shadow-[3px_3px_0px_#fbcfe8]">
+      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-3 rounded-lg border-2 border-pink-200 shadow-[3px_3px_0px_#fbcfe8] achievement-toolbar">
         {/* Status filter */}
         <div className="flex gap-2">
           {(['all', 'unlocked', 'locked'] as const).map(f => (
@@ -123,8 +123,8 @@ export const Achievements: React.FC<AchievementsProps> = ({ state }) => {
               onClick={() => setFilter(f)}
               className={`px-3 py-1.5 rounded text-xs font-pixel capitalize transition-all cursor-pointer border ${
                 filter === f
-                  ? 'bg-pink-500 text-white font-bold border-pink-600 shadow-[2px_2px_0px_#fbcfe8]'
-                  : 'bg-pink-50 text-slate-600 border-pink-200 hover:bg-pink-100 hover:text-pink-700'
+                  ? 'achievement-filter-active bg-pink-500 text-white font-bold border-pink-600 shadow-[2px_2px_0px_#fbcfe8]'
+                  : 'achievement-filter-inactive bg-pink-50 text-slate-600 border-pink-200 hover:bg-pink-100 hover:text-pink-700'
               }`}
             >
               {f === 'all' ? 'All Accolades' : f}
@@ -138,8 +138,8 @@ export const Achievements: React.FC<AchievementsProps> = ({ state }) => {
             onClick={() => setCategoryFilter('all')}
             className={`px-2.5 py-1 rounded text-[11px] font-pixel transition-all cursor-pointer ${
               categoryFilter === 'all'
-                ? 'bg-pink-500 text-white border border-pink-600 font-bold shadow-sm'
-                : 'text-slate-600 hover:text-pink-700 bg-pink-50 border border-pink-200'
+                ? 'achievement-filter-active bg-pink-500 text-white border border-pink-600 font-bold shadow-sm'
+                : 'achievement-filter-inactive text-slate-600 hover:text-pink-700 bg-pink-50 border border-pink-200'
             }`}
           >
             All Biomes
@@ -153,8 +153,8 @@ export const Achievements: React.FC<AchievementsProps> = ({ state }) => {
                 onClick={() => setCategoryFilter(cat)}
                 className={`px-2.5 py-1 rounded text-[11px] font-pixel transition-all cursor-pointer ${
                   active
-                    ? 'bg-pink-500 text-white border border-pink-600 font-bold shadow-sm'
-                    : 'text-slate-600 hover:text-pink-700 bg-pink-50 border border-pink-200'
+                    ? 'achievement-filter-active bg-pink-500 text-white border border-pink-600 font-bold shadow-sm'
+                    : 'achievement-filter-inactive text-slate-600 hover:text-pink-700 bg-pink-50 border border-pink-200'
                 }`}
               >
                 {meta.rune} {meta.title.split(' ')[0]}
@@ -173,12 +173,12 @@ export const Achievements: React.FC<AchievementsProps> = ({ state }) => {
 
           return (
             <div key={cat} className="space-y-4">
-              <div className="flex items-center gap-2 border-b-2 border-pink-200 pb-2">
+              <div className="flex items-center gap-2 border-b-2 border-pink-200 pb-2 achievement-category-header">
                 <span className="text-xl">{meta.rune}</span>
-                <h2 className="text-base font-pixel-heading text-pink-950">
+                <h2 className="text-base font-pixel-heading text-pink-950 achievement-category-title">
                   {meta.title}
                 </h2>
-                <span className="text-xs font-pixel text-pink-600 font-bold ml-auto">
+                <span className="text-xs font-pixel text-pink-600 font-bold ml-auto achievement-category-counter">
                   {items.filter(i => i.unlocked).length} / {items.length} Completed
                 </span>
               </div>
@@ -189,21 +189,21 @@ export const Achievements: React.FC<AchievementsProps> = ({ state }) => {
                     key={achievement.id}
                     className={`relative p-4 rounded-lg border-2 transition-all overflow-hidden flex items-start gap-4 ${
                       achievement.unlocked
-                        ? 'bg-white border-pink-400 shadow-[3px_3px_0px_#fbcfe8]'
-                        : 'bg-pink-50/50 border-pink-200 opacity-65'
+                        ? 'achievement-card-unlocked bg-white border-pink-400 shadow-[3px_3px_0px_#fbcfe8]'
+                        : 'achievement-card-locked bg-pink-50/50 border-pink-200'
                     }`}
                   >
                     {/* Metal corner bracket */}
                     {achievement.unlocked && (
                       <>
-                        <div className="absolute top-1 left-1 w-2 h-2 bg-pink-400 pointer-events-none" />
-                        <div className="absolute top-1 right-1 w-2 h-2 bg-pink-400 pointer-events-none" />
+                        <div className="achievement-corner-bracket absolute top-1 left-1 w-2 h-2 bg-pink-400 pointer-events-none" />
+                        <div className="achievement-corner-bracket absolute top-1 right-1 w-2 h-2 bg-pink-400 pointer-events-none" />
                       </>
                     )}
 
                     {/* Left: Icon Plaque */}
                     <div
-                      className={`w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0 text-xl border-2 shadow-inner ${
+                      className={`achievement-icon-plaque w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0 text-xl border-2 shadow-inner ${
                         achievement.unlocked
                           ? 'bg-pink-50 border-pink-300 text-pink-600'
                           : 'bg-pink-100/50 border-pink-200 text-slate-400 grayscale'
@@ -215,22 +215,22 @@ export const Achievements: React.FC<AchievementsProps> = ({ state }) => {
                     {/* Center: Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2 mb-1">
-                        <h3 className={`font-pixel text-sm font-bold truncate ${
+                        <h3 className={`font-pixel text-sm font-bold truncate achievement-title ${
                           achievement.unlocked ? 'text-pink-950' : 'text-slate-500'
                         }`}>
                           {achievement.name}
                         </h3>
                         {achievement.unlocked && (
-                          <CheckCircle2 className="w-4 h-4 text-pink-600 flex-shrink-0" />
+                          <CheckCircle2 className="w-4 h-4 text-pink-600 flex-shrink-0 checkmark-icon" />
                         )}
                       </div>
 
-                      <p className="text-xs font-pixel text-slate-600 leading-relaxed mb-2">
+                      <p className="achievement-desc text-xs font-pixel text-slate-600 leading-relaxed mb-2">
                         {achievement.description}
                       </p>
 
                       {achievement.unlocked && achievement.unlockedAt ? (
-                        <div className="text-[10px] font-pixel text-pink-600 flex items-center gap-1 font-bold">
+                        <div className="achievement-date text-[10px] font-pixel text-pink-600 flex items-center gap-1 font-bold">
                           <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
                           <span>
                             Conquered {new Date(achievement.unlockedAt).toLocaleDateString('en-US', {
@@ -239,7 +239,7 @@ export const Achievements: React.FC<AchievementsProps> = ({ state }) => {
                           </span>
                         </div>
                       ) : (
-                        <div className="text-[10px] font-pixel text-slate-400">
+                        <div className="achievement-locked-note text-[10px] font-pixel text-slate-400">
                           🔒 Undiscovered milestone
                         </div>
                       )}

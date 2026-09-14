@@ -154,6 +154,21 @@ html, body {
   box-shadow: 4px 4px 0px #ec4899;
 }
 
+/* Realm Stage Dynamic Components (Pink / Default Theme) */
+.realm-stage-backdrop {
+  background: linear-gradient(to bottom, #fff0f5, #ffffff, #fdf2f8);
+}
+.realm-status-header {
+  background-color: rgba(255, 255, 255, 0.92);
+  border-color: #fce7f3;
+  color: #1e1b2e;
+}
+.realm-tips-bar {
+  background-color: #ffffff;
+  border-color: #fce7f3;
+  color: #64748b;
+}
+
 /* ============================================================
    Pixel Buttons
    ============================================================ */
@@ -331,7 +346,7 @@ html[data-theme="dark"] [class*="bg-[#fff5f8]"],
   color: #f1f5f9 !important;
 }
 
-/* Dark Mode Panels & Cards */
+/* Universal Dark Mode Background Fixes (Eliminate Distorted Glaring White) */
 html[data-theme="dark"] aside,
 html[data-theme="dark"] .bg-white,
 .theme-dark aside,
@@ -340,16 +355,32 @@ html[data-theme="dark"] .bg-white,
   color: #f1f5f9 !important;
 }
 
+html[data-theme="dark"] [class*="bg-white/"] {
+  background-color: rgba(17, 24, 39, 0.95) !important;
+  color: #f8fafc !important;
+  border-color: #374151 !important;
+}
+
+html[data-theme="dark"] [class*="bg-[#fffbfc]"],
+html[data-theme="dark"] [class*="bg-[#fff0f5]"],
+html[data-theme="dark"] [class*="bg-[#fdf2f8]"] {
+  background-color: #111827 !important;
+  color: #f8fafc !important;
+}
+
 html[data-theme="dark"] [class*="from-[#fff0f5]"],
-html[data-theme="dark"] [class*="from-pink-50"],
-.theme-dark [class*="from-[#fff0f5]"] {
+html[data-theme="dark"] [class*="from-pink-50"] {
   background: #0f172a !important;
+}
+
+html[data-theme="dark"] [class*="to-white"] {
+  --tw-gradient-to: #111827 var(--tw-gradient-to-position) !important;
 }
 
 html[data-theme="dark"] .bg-pink-50,
 html[data-theme="dark"] .bg-pink-100,
-html[data-theme="dark"] [class*="bg-[#fff0f5]"],
-html[data-theme="dark"] [class*="bg-[#fdf2f8]"],
+html[data-theme="dark"] [class*="bg-pink-50/"],
+html[data-theme="dark"] [class*="bg-pink-100/"],
 .theme-dark .bg-pink-50 {
   background-color: #1e293b !important;
   color: #f8fafc !important;
@@ -408,15 +439,224 @@ html[data-theme="dark"] [class*="shadow-[2px_2px_0px_#f472b6]"] {
   box-shadow: 3px 3px 0px #020617 !important;
 }
 
-/* Dark Mode Panels & Buttons */
+/* Dark Mode Ancient Journal Panels */
 html[data-theme="dark"] .journal-panel,
-html[data-theme="dark"] .journal-stone {
+html[data-theme="dark"] .journal-stone,
+html[data-theme="dark"] .journal-wood,
+html[data-theme="dark"] .journal-parchment {
   background-color: #111827 !important;
+  background-image: none !important;
   border-color: #f59e0b !important;
   box-shadow: 4px 4px 0px #020617 !important;
   color: #f8fafc !important;
 }
 
+html[data-theme="dark"] .corner-bracket {
+  border-color: #f59e0b !important;
+}
+
+/* Dark Mode Realm Stage Mini-World */
+html[data-theme="dark"] .realm-stage-backdrop {
+  background: linear-gradient(to bottom, #090d16, #0f172a, #090d16) !important;
+}
+
+html[data-theme="dark"] .realm-status-header {
+  background-color: rgba(17, 24, 39, 0.95) !important;
+  border-color: #374151 !important;
+  color: #f8fafc !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+html[data-theme="dark"] .realm-tips-bar {
+  background-color: #111827 !important;
+  border-color: #374151 !important;
+  color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .realm-badge {
+  background-color: #1e293b !important;
+  border-color: #f59e0b !important;
+  color: #fbbf24 !important;
+}
+
+html[data-theme="dark"] .realm-title {
+  color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .realm-shrine {
+  color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .realm-streak-pill {
+  background-color: #1e293b !important;
+  border-color: #7c2d12 !important;
+  color: #fb923c !important;
+}
+
+html[data-theme="dark"] .realm-level-pill {
+  background-color: #1e293b !important;
+  border-color: #831843 !important;
+  color: #f472b6 !important;
+}
+
+/* Dark Mode Navigation */
+html[data-theme="dark"] .nav-logo-panel {
+  background: linear-gradient(to right, #0f172a, #111827) !important;
+  border-color: #1e293b !important;
+}
+
+html[data-theme="dark"] .nav-user-plaque {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 2px 2px 0px #020617 !important;
+  color: #f8fafc !important;
+}
+
+/* Dark Mode Achievements & Accolades */
+html[data-theme="dark"] .achievement-toolbar,
+html[data-theme="dark"] .achievement-rank-card {
+  background-color: #111827 !important;
+  border-color: #1e293b !important;
+  box-shadow: 3px 3px 0px #020617 !important;
+}
+
+html[data-theme="dark"] .achievement-category-header {
+  border-color: #1e293b !important;
+}
+
+html[data-theme="dark"] .achievement-category-title {
+  color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .achievement-category-counter {
+  color: #fbbf24 !important;
+}
+
+html[data-theme="dark"] .achievement-filter-active {
+  background-color: #f59e0b !important;
+  color: #090d16 !important;
+  border-color: #d97706 !important;
+  font-weight: bold !important;
+}
+
+html[data-theme="dark"] .achievement-filter-inactive {
+  background-color: #1e293b !important;
+  color: #cbd5e1 !important;
+  border-color: #334155 !important;
+}
+
+html[data-theme="dark"] .achievement-filter-inactive:hover {
+  background-color: #334155 !important;
+  color: #fbbf24 !important;
+}
+
+html[data-theme="dark"] .achievement-card-unlocked {
+  background-color: #111827 !important;
+  border-color: #f59e0b !important;
+  box-shadow: 3px 3px 0px #78350f !important;
+}
+
+html[data-theme="dark"] .achievement-card-unlocked .achievement-title {
+  color: #fbbf24 !important;
+}
+
+html[data-theme="dark"] .achievement-card-unlocked .achievement-desc {
+  color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .achievement-card-unlocked .achievement-icon-plaque {
+  background-color: #1e293b !important;
+  border-color: #f59e0b !important;
+  color: #fbbf24 !important;
+}
+
+html[data-theme="dark"] .achievement-card-unlocked .checkmark-icon {
+  color: #f59e0b !important;
+}
+
+html[data-theme="dark"] .achievement-card-unlocked .achievement-corner-bracket {
+  background-color: #f59e0b !important;
+}
+
+html[data-theme="dark"] .achievement-card-unlocked .achievement-date {
+  color: #fbbf24 !important;
+}
+
+html[data-theme="dark"] .achievement-card-locked {
+  background-color: #131b2e !important;
+  border-color: #1e293b !important;
+  opacity: 1 !important;
+}
+
+html[data-theme="dark"] .achievement-card-locked .achievement-title {
+  color: #e2e8f0 !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="dark"] .achievement-card-locked .achievement-desc {
+  color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .achievement-card-locked .achievement-icon-plaque {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #64748b !important;
+}
+
+html[data-theme="dark"] .achievement-card-locked .achievement-locked-note {
+  color: #64748b !important;
+}
+
+/* Dark Mode Realm Detail Elements */
+html[data-theme="dark"] .element-card-unlocked {
+  background-color: #111827 !important;
+  border-color: #f59e0b !important;
+  box-shadow: 3px 3px 0px #78350f !important;
+}
+
+html[data-theme="dark"] .element-card-unlocked .element-title {
+  color: #fbbf24 !important;
+}
+
+html[data-theme="dark"] .element-card-unlocked .element-desc {
+  color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .element-card-unlocked .element-badge {
+  background-color: #1e293b !important;
+  border-color: #f59e0b !important;
+  color: #fbbf24 !important;
+}
+
+html[data-theme="dark"] .element-card-unlocked .checkmark-icon {
+  color: #f59e0b !important;
+}
+
+html[data-theme="dark"] .element-card-locked {
+  background-color: #131b2e !important;
+  border-color: #1e293b !important;
+  opacity: 1 !important;
+}
+
+html[data-theme="dark"] .element-card-locked .element-title {
+  color: #e2e8f0 !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="dark"] .element-card-locked .element-desc {
+  color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .element-card-locked .element-req {
+  border-color: #1e293b !important;
+  color: #f59e0b !important;
+}
+
+html[data-theme="dark"] .element-card-locked .lock-icon {
+  color: #64748b !important;
+}
+
+/* Dark Mode Realm Cards */
 html[data-theme="dark"] .realm-card {
   background-color: #111827 !important;
   border-color: #1e293b !important;
@@ -472,6 +712,12 @@ html[data-theme="white"] .bg-white,
 .theme-white .bg-white {
   background-color: #ffffff !important;
   color: #0f172a !important;
+}
+
+html[data-theme="white"] [class*="bg-white/"] {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
 }
 
 html[data-theme="white"] [class*="from-[#fff0f5]"],
@@ -551,6 +797,156 @@ html[data-theme="white"] .journal-stone {
   border-color: #cbd5e1 !important;
   box-shadow: 4px 4px 0px #cbd5e1 !important;
   color: #0f172a !important;
+}
+
+html[data-theme="white"] .corner-bracket {
+  border-color: #cbd5e1 !important;
+}
+
+/* White Mode Realm Stage */
+html[data-theme="white"] .realm-stage-backdrop {
+  background: linear-gradient(to bottom, #f8fafc, #ffffff, #f1f5f9) !important;
+}
+
+html[data-theme="white"] .realm-status-header {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="white"] .realm-tips-bar {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #64748b !important;
+}
+
+html[data-theme="white"] .realm-badge {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="white"] .realm-title {
+  color: #0f172a !important;
+}
+
+html[data-theme="white"] .realm-shrine {
+  color: #64748b !important;
+}
+
+html[data-theme="white"] .realm-streak-pill {
+  background-color: #fef3c7 !important;
+  border-color: #fde68a !important;
+  color: #b45309 !important;
+}
+
+html[data-theme="white"] .realm-level-pill {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* White Mode Navigation */
+html[data-theme="white"] .nav-logo-panel {
+  background: linear-gradient(to right, #f1f5f9, #ffffff) !important;
+  border-color: #cbd5e1 !important;
+}
+
+html[data-theme="white"] .nav-user-plaque {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 2px 2px 0px #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* White Mode Achievements */
+html[data-theme="white"] .achievement-toolbar,
+html[data-theme="white"] .achievement-rank-card {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 3px 3px 0px #cbd5e1 !important;
+}
+
+html[data-theme="white"] .achievement-category-header {
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme="white"] .achievement-category-title {
+  color: #0f172a !important;
+}
+
+html[data-theme="white"] .achievement-category-counter {
+  color: #b45309 !important;
+}
+
+html[data-theme="white"] .achievement-filter-active {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #020617 !important;
+  font-weight: bold !important;
+}
+
+html[data-theme="white"] .achievement-filter-inactive {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+  border-color: #cbd5e1 !important;
+}
+
+html[data-theme="white"] .achievement-filter-inactive:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="white"] .achievement-card-unlocked {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 3px 3px 0px #cbd5e1 !important;
+}
+
+html[data-theme="white"] .achievement-card-unlocked .achievement-title {
+  color: #0f172a !important;
+}
+
+html[data-theme="white"] .achievement-card-unlocked .achievement-desc {
+  color: #475569 !important;
+}
+
+html[data-theme="white"] .achievement-card-unlocked .achievement-icon-plaque {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #b45309 !important;
+}
+
+html[data-theme="white"] .achievement-card-unlocked .checkmark-icon {
+  color: #16a34a !important;
+}
+
+html[data-theme="white"] .achievement-card-unlocked .achievement-corner-bracket {
+  background-color: #94a3b8 !important;
+}
+
+html[data-theme="white"] .achievement-card-unlocked .achievement-date {
+  color: #b45309 !important;
+}
+
+html[data-theme="white"] .achievement-card-locked {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  opacity: 1 !important;
+}
+
+html[data-theme="white"] .achievement-card-locked .achievement-title {
+  color: #64748b !important;
+}
+
+html[data-theme="white"] .achievement-card-locked .achievement-desc {
+  color: #94a3b8 !important;
+}
+
+html[data-theme="white"] .achievement-card-locked .achievement-icon-plaque {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #94a3b8 !important;
 }
 
 html[data-theme="white"] .realm-card {

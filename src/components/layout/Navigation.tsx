@@ -44,7 +44,7 @@ export const Navigation: React.FC<NavProps> = ({
         <VineDecoration position="top-left" flowerColor="#f472b6" className="opacity-90" />
 
         {/* Top Logo Panel */}
-        <div className="p-4 border-b-2 border-pink-200 bg-gradient-to-r from-pink-50 to-white">
+        <div className="nav-logo-panel p-4 border-b-2 border-pink-200 bg-gradient-to-r from-pink-50 to-white">
           <div className="flex items-center gap-3">
             {/* Mythical Relic Axe Logo */}
             <div className="w-10 h-10 rounded bg-pink-50 border-2 border-pink-400 flex items-center justify-center shadow-[2px_2px_0px_#f472b6] relative overflow-hidden group">
@@ -124,7 +124,7 @@ export const Navigation: React.FC<NavProps> = ({
         {/* User Adventurer Profile / Auth Plaque */}
         <div className="p-3 border-t-2 border-pink-200 bg-pink-50/60">
           {user ? (
-            <div className="p-2.5 rounded-lg border-2 border-pink-300 bg-white shadow-[2px_2px_0px_#f472b6]">
+            <div className="nav-user-plaque p-2.5 rounded-lg border-2 border-pink-300 bg-white shadow-[2px_2px_0px_#f472b6]">
               <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2 overflow-hidden">
                   <span className="text-xl flex-shrink-0" role="img" aria-label="avatar">

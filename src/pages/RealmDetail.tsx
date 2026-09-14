@@ -333,35 +333,35 @@ export const RealmDetail: React.FC<RealmDetailProps> = ({ state, subjectId, onNa
                 key={el.id}
                 className={`p-4 rounded border-2 transition-all relative overflow-hidden flex flex-col justify-between ${
                   isUnlocked
-                    ? 'bg-white border-pink-400 shadow-[3px_3px_0px_#fbcfe8]'
-                    : 'bg-pink-50/50 border-pink-200 opacity-60'
+                    ? 'element-card-unlocked bg-white border-pink-400 shadow-[3px_3px_0px_#fbcfe8]'
+                    : 'element-card-locked bg-pink-50/50 border-pink-200'
                 }`}
               >
                 {/* Status icon badge */}
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div className="flex items-center gap-2">
                     {isUnlocked ? (
-                      <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-pink-600" />
+                      <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-pink-600 checkmark-icon" />
                     ) : (
-                      <Lock className="w-4 h-4 flex-shrink-0 text-slate-400" />
+                      <Lock className="w-4 h-4 flex-shrink-0 text-slate-400 lock-icon" />
                     )}
-                    <span className={`font-bold font-pixel text-xs ${isUnlocked ? 'text-pink-950' : 'text-slate-500'}`}>
+                    <span className={`font-bold font-pixel text-xs element-title ${isUnlocked ? 'text-pink-950' : 'text-slate-500'}`}>
                       {el.name}
                     </span>
                   </div>
                   {isUnlocked && (
-                    <span className="text-[9px] font-pixel text-pink-700 bg-pink-100 border border-pink-300 px-2 py-0.5 rounded">
+                    <span className="text-[9px] font-pixel text-pink-700 bg-pink-100 border border-pink-300 px-2 py-0.5 rounded element-badge">
                       Awakened
                     </span>
                   )}
                 </div>
 
-                <p className="text-xs font-pixel text-slate-600 mb-3 leading-relaxed">
+                <p className="text-xs font-pixel text-slate-600 mb-3 leading-relaxed element-desc">
                   {el.description}
                 </p>
 
                 {!isUnlocked && (
-                  <div className="pt-2 border-t border-pink-200 flex items-center justify-between text-[11px] font-pixel text-pink-600">
+                  <div className="pt-2 border-t border-pink-200 flex items-center justify-between text-[11px] font-pixel text-pink-600 element-req">
                     <span>Requirement:</span>
                     <span>{el.minutesRequired}m + Lv.{el.levelRequired}</span>
                   </div>

@@ -13,6 +13,7 @@ import { Achievements } from './pages/Achievements';
 import { Settings } from './pages/Settings';
 import { RealmDetail } from './pages/RealmDetail';
 import { ThemeToggle } from './components/layout/ThemeToggle';
+import { FloatingMiniTimer } from './components/timer/FloatingMiniTimer';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -21,6 +22,7 @@ export default function App() {
   const [toasts, setToasts] = useState<{ id: number; message: string }[]>([]);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isGuestMode, setIsGuestMode] = useState(false);
+  const [showMiniTimer, setShowMiniTimer] = useState(false);
 
   const auth = useAuth();
 
@@ -116,6 +118,8 @@ export default function App() {
             onStartBreak={startBreak}
             getElapsedMs={getElapsedMs}
             getRemainingMs={getRemainingMs}
+            showMiniTimer={showMiniTimer}
+            onToggleMiniTimer={() => setShowMiniTimer(prev => !prev)}
           />
         );
       case 'statistics':
@@ -212,17 +216,40 @@ export default function App() {
         ))}
       </div>
 
-      {/* Active timer indicator */}
+      {/* Active timer indicator & Mini Clock launcher */}
       {state.timer.isRunning && currentPage !== 'timer' && (
-        <div
-          className="fixed bottom-24 md:bottom-6 left-4 z-50 cursor-pointer"
-          onClick={() => navigate('timer')}
-        >
-          <div className="bg-pink-500 text-white border-2 border-pink-600 px-3.5 py-2 rounded font-pixel text-xs flex items-center gap-2 shadow-[3px_3px_0px_#f472b6] animate-pulse">
+        <div className="fixed bottom-24 md:bottom-6 left-4 z-50 flex items-center gap-2">
+          <div
+            className="cursor-pointer bg-pink-500 text-white border-2 border-pink-600 px-3.5 py-2 rounded font-pixel text-xs flex items-center gap-2 shadow-[3px_3px_0px_#f472b6] animate-pulse"
+            onClick={() => navigate('timer')}
+          >
             <span>●</span>
             {state.timer.isPaused ? 'PAUSED' : 'FOCUS STUDYING'} — Click to view
           </div>
+          {!showMiniTimer && (
+            <button
+              type="button"
+              onClick={() => setShowMiniTimer(true)}
+              className="bg-slate-800 text-amber-300 border-2 border-amber-400 px-2.5 py-2 rounded font-pixel text-xs flex items-center gap-1 shadow-[2px_2px_0px_#78350f] cursor-pointer hover:bg-slate-700 transition-colors"
+              title="Open Clock App mini popup in top right"
+            >
+              ⏱️ Pop up
+            </button>
+          )}
         </div>
+      )}
+
+      {/* Floating Clock App Mini Timer Widget (Top-Right) */}
+      {showMiniTimer && (
+        <FloatingMiniTimer
+          state={state}
+          onPause={pauseTimer}
+          onResume={resumeTimer}
+          onReset={resetTimer}
+          onNavigateToTimer={() => navigate('timer')}
+          onClose={() => setShowMiniTimer(false)}
+          getRemainingMs={getRemainingMs}
+        />
       )}
 
       {/* JWT Authentication Modal */}

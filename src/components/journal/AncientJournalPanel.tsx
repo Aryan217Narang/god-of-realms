@@ -23,9 +23,9 @@ export const AncientJournalPanel: React.FC<JournalPanelProps> = ({
   onClick,
 }) => {
   const bgStyles = {
-    parchment: 'bg-white border-pink-200 text-slate-800',
-    stone: 'bg-[#fffbfc] border-pink-300 text-slate-900',
-    wood: 'bg-gradient-to-br from-pink-50 to-white border-pink-300 text-slate-900',
+    parchment: 'journal-panel journal-parchment bg-white border-pink-200 text-slate-800',
+    stone: 'journal-panel journal-stone bg-[#fffbfc] border-pink-300 text-slate-900',
+    wood: 'journal-panel journal-wood bg-gradient-to-br from-pink-50 to-white border-pink-300 text-slate-900',
   }[variant];
 
   const customBorderGlow = glowColor
@@ -41,10 +41,10 @@ export const AncientJournalPanel: React.FC<JournalPanelProps> = ({
       style={customBorderGlow}
     >
       {/* Pink Pixel Corner Brackets */}
-      <div className="absolute top-1 left-1 w-2.5 h-2.5 border-t-2 border-l-2 border-pink-400 pointer-events-none z-20" />
-      <div className="absolute top-1 right-1 w-2.5 h-2.5 border-t-2 border-r-2 border-pink-400 pointer-events-none z-20" />
-      <div className="absolute bottom-1 left-1 w-2.5 h-2.5 border-b-2 border-l-2 border-pink-400 pointer-events-none z-20" />
-      <div className="absolute bottom-1 right-1 w-2.5 h-2.5 border-b-2 border-r-2 border-pink-400 pointer-events-none z-20" />
+      <div className="corner-bracket absolute top-1 left-1 w-2.5 h-2.5 border-t-2 border-l-2 border-pink-400 pointer-events-none z-20" />
+      <div className="corner-bracket absolute top-1 right-1 w-2.5 h-2.5 border-t-2 border-r-2 border-pink-400 pointer-events-none z-20" />
+      <div className="corner-bracket absolute bottom-1 left-1 w-2.5 h-2.5 border-b-2 border-l-2 border-pink-400 pointer-events-none z-20" />
+      <div className="corner-bracket absolute bottom-1 right-1 w-2.5 h-2.5 border-b-2 border-r-2 border-pink-400 pointer-events-none z-20" />
 
       {/* Living Pixel Vine Decoration */}
       {hasVines && (
