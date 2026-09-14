@@ -64,19 +64,24 @@ export function formatTime(
     return `${roundedMin}m`;
   }
 
-  // Decimal hours e.g. 2.5h, 0.5h, 4.5h
-  const decimalVal = minutes / 60;
-  const roundedDecimal = Math.round(decimalVal * 10) / 10;
-  const decimalStr = roundedDecimal % 1 === 0
-    ? `${roundedDecimal}h`
-    : `${roundedDecimal.toFixed(1)}h`;
+  const h = Math.floor(roundedMin / 60);
+  const m = Math.round(roundedMin % 60);
+  const mStr = m.toString().padStart(2, '0');
+
+  // Hours format: "out of 60 up to 2 decimal places like 2hr and 56 minutes is 2.56"
+  let decimalStr = '';
+  if (h === 0) {
+    decimalStr = m === 0 ? '0h' : `0.${mStr}h`;
+  } else if (m === 0) {
+    decimalStr = `${h}h`;
+  } else {
+    decimalStr = `${h}.${mStr}h`;
+  }
 
   if (format === 'hours_decimal') {
     return decimalStr;
   }
 
-  const h = Math.floor(minutes / 60);
-  const m = Math.round(minutes % 60);
   let hmStr = '';
   if (h === 0) {
     hmStr = `${m}m`;
@@ -90,8 +95,8 @@ export function formatTime(
     return hmStr;
   }
 
-  // 'both' (e.g. 2.5h [150m] or 2h 30m [150m])
-  if (minutes >= 60) {
+  // 'both' (e.g. 2.56h [176m])
+  if (roundedMin >= 60) {
     return `${decimalStr} (${roundedMin}m)`;
   }
   return `${roundedMin}m`;

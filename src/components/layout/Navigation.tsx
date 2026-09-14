@@ -1,7 +1,9 @@
 import React from 'react';
 import { LayoutDashboard, Globe, Timer, BarChart3, Trophy, Settings, LogIn, LogOut, Shield } from 'lucide-react';
 import { VineDecoration } from '../journal/VineDecoration';
+import { ThemeToggle } from './ThemeToggle';
 import type { User } from '../../types/auth';
+import type { ThemeMode } from '../../types';
 
 export type Page = 'dashboard' | 'realms' | 'timer' | 'statistics' | 'achievements' | 'settings' | 'realm-detail';
 
@@ -11,6 +13,8 @@ interface NavProps {
   user: User | null;
   onOpenAuth: () => void;
   onLogout: () => void;
+  currentTheme: ThemeMode;
+  onSelectTheme: (theme: ThemeMode) => void;
 }
 
 const navItems = [
@@ -35,11 +39,25 @@ export const Navigation: React.FC<NavProps> = ({
   user,
   onOpenAuth,
   onLogout,
+  currentTheme,
+  onSelectTheme,
 }) => {
   return (
     <>
+      {/* Mobile Top Header with Theme Switcher */}
+      <header className="md:hidden flex items-center justify-between px-3.5 py-2 border-b-2 border-pink-200 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm sticky top-0 z-30 shadow-sm">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-pixel-heading text-pink-950 dark:text-amber-400">GOD OF REALMS</span>
+        </div>
+        <ThemeToggle
+          currentTheme={currentTheme}
+          onSelectTheme={onSelectTheme}
+          className="!p-0.5 !border-pink-200 scale-90 origin-right"
+        />
+      </header>
+
       {/* Desktop Ancient Equipment Panel Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 h-screen sticky top-0 flex-shrink-0 bg-white border-r-2 border-pink-200 shadow-xl z-40 select-none">
+      <aside className="hidden md:flex flex-col w-64 h-screen sticky top-0 flex-shrink-0 bg-white border-r-2 border-pink-200 shadow-xl z-20 select-none">
         {/* Living Vine climbing from top edge */}
         <VineDecoration position="top-left" flowerColor="#f472b6" className="opacity-90" />
 
@@ -66,6 +84,19 @@ export const Navigation: React.FC<NavProps> = ({
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Illumination Theme Mode Toggle */}
+        <div className="px-3 py-2 border-b border-pink-100 bg-pink-50/40">
+          <div className="text-[10px] font-pixel text-pink-600 font-bold uppercase tracking-wider mb-1 flex items-center justify-between">
+            <span>Illumination</span>
+            <span className="text-[9px] text-slate-400 capitalize">{currentTheme}</span>
+          </div>
+          <ThemeToggle
+            currentTheme={currentTheme}
+            onSelectTheme={onSelectTheme}
+            className="w-full justify-around !p-0.5 !border-pink-200 shadow-none text-[11px]"
+          />
         </div>
 
         {/* Quest Navigation List */}

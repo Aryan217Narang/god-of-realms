@@ -268,16 +268,16 @@ export const Settings: React.FC<SettingsProps> = ({ state, onUpdateSettings, onR
                       Time Representation Unit
                     </span>
                     <span className="text-[11px] font-sans text-slate-500">
-                      Display study time in decimal hours (e.g. 2.5h), hours & mins, or minutes
+                      Display study time in hours & minutes (e.g. 2hr 56m as 2.56h), hours & mins, or minutes
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {[
-                    { id: 'hours_decimal', label: '2.5h (Decimal)' },
-                    { id: 'hours_mins', label: '2h 30m' },
-                    { id: 'minutes', label: '150m' },
-                    { id: 'both', label: '2.5h (150m)' },
+                    { id: 'hours_decimal', label: '2.56h (Hours.Mins)' },
+                    { id: 'hours_mins', label: '2h 56m' },
+                    { id: 'minutes', label: '176m' },
+                    { id: 'both', label: '2.56h (176m)' },
                   ].map(fmt => {
                     const currentFormat = s.timeFormat || 'hours_decimal';
                     const active = currentFormat === fmt.id;

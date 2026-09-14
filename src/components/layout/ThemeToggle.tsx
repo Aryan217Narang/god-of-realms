@@ -21,7 +21,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
 }) => {
   return (
     <div
-      className={`theme-toggle-container fixed top-3 right-3 md:right-6 z-50 flex items-center bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1 rounded-lg border-2 border-pink-300 shadow-[3px_3px_0px_rgba(244,114,182,0.6)] select-none transition-all duration-200 ${className}`}
+      className={`theme-toggle-container flex items-center bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1 rounded-lg border-2 border-pink-300 shadow-[2px_2px_0px_rgba(244,114,182,0.6)] select-none transition-all duration-200 ${className}`}
       role="group"
       aria-label="Theme Selector"
     >
