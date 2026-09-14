@@ -143,7 +143,7 @@ export const RealmDetail: React.FC<RealmDetailProps> = ({ state, subjectId, onNa
           hasVines={true}
           className="overflow-hidden shadow-[4px_4px_0px_#fbcfe8] border-pink-300 !p-0"
         >
-          <div className="relative bg-gradient-to-b from-[#fff0f5] to-[#fdf2f8] flex flex-col justify-between">
+          <div className="realm-stage-backdrop relative bg-gradient-to-b from-[#fff0f5] to-[#fdf2f8] flex flex-col justify-between">
             <PixelRealmScene
               subjectId={subjectId}
               level={subject.level}

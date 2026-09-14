@@ -363,18 +363,29 @@ html[data-theme="dark"] [class*="bg-white/"] {
 
 html[data-theme="dark"] [class*="bg-[#fffbfc]"],
 html[data-theme="dark"] [class*="bg-[#fff0f5]"],
+html[data-theme="dark"] [class*="bg-[#fff8fa]"],
 html[data-theme="dark"] [class*="bg-[#fdf2f8]"] {
   background-color: #111827 !important;
   color: #f8fafc !important;
 }
 
 html[data-theme="dark"] [class*="from-[#fff0f5]"],
+html[data-theme="dark"] [class*="from-[#fff5f8]"],
 html[data-theme="dark"] [class*="from-pink-50"] {
-  background: #0f172a !important;
+  background: #090d16 !important;
+  --tw-gradient-from: #090d16 var(--tw-gradient-from-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), #0f172a var(--tw-gradient-via-position, 50%), var(--tw-gradient-to) !important;
 }
 
+html[data-theme="dark"] [class*="to-[#fdf2f8]"],
+html[data-theme="dark"] [class*="to-[#fce7f3]"],
 html[data-theme="dark"] [class*="to-white"] {
-  --tw-gradient-to: #111827 var(--tw-gradient-to-position) !important;
+  --tw-gradient-to: #0f172a var(--tw-gradient-to-position) !important;
+}
+
+html[data-theme="dark"] [class*="via-[#fff5f8]"],
+html[data-theme="dark"] [class*="via-[#fdf2f8]"] {
+  --tw-gradient-stops: var(--tw-gradient-from), #0f172a var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
 }
 
 html[data-theme="dark"] .bg-pink-50,
@@ -384,6 +395,12 @@ html[data-theme="dark"] [class*="bg-pink-100/"],
 .theme-dark .bg-pink-50 {
   background-color: #1e293b !important;
   color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .bg-amber-50 {
+  background-color: #1e293b !important;
+  border-color: #78350f !important;
+  color: #fbbf24 !important;
 }
 
 /* Dark Mode Borders */
@@ -435,8 +452,10 @@ html[data-theme="dark"] .timer-digits {
 html[data-theme="dark"] [class*="shadow-[3px_3px_0px_#f472b6]"],
 html[data-theme="dark"] [class*="shadow-[4px_4px_0px_#fbcfe8]"],
 html[data-theme="dark"] [class*="shadow-[4px_4px_0px_#f472b6]"],
-html[data-theme="dark"] [class*="shadow-[2px_2px_0px_#f472b6]"] {
-  box-shadow: 3px 3px 0px #020617 !important;
+html[data-theme="dark"] [class*="shadow-[2px_2px_0px_#f472b6]"],
+html[data-theme="dark"] [class*="shadow-[2px_2px_0px_#fce7f3]"],
+html[data-theme="dark"] [class*="shadow-[2px_2px_0px_#fbcfe8]"] {
+  box-shadow: 2px 2px 0px #020617 !important;
 }
 
 /* Dark Mode Ancient Journal Panels */
@@ -455,9 +474,54 @@ html[data-theme="dark"] .corner-bracket {
   border-color: #f59e0b !important;
 }
 
-/* Dark Mode Realm Stage Mini-World */
-html[data-theme="dark"] .realm-stage-backdrop {
-  background: linear-gradient(to bottom, #090d16, #0f172a, #090d16) !important;
+/* Dark Mode Realm Stage & Preview Stages */
+html[data-theme="dark"] .realm-stage-backdrop,
+html[data-theme="dark"] .realm-preview-stage {
+  background: linear-gradient(to bottom, #090d16, #0f172a) !important;
+  background-image: linear-gradient(to bottom, #090d16, #0f172a) !important;
+  border-color: #1e293b !important;
+}
+
+html[data-theme="dark"] .realm-featured-info {
+  background-color: #111827 !important;
+  background-image: none !important;
+  border-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .realm-catalog-card {
+  background-color: #111827 !important;
+  border-color: #1e293b !important;
+  box-shadow: 4px 4px 0px #020617 !important;
+}
+
+html[data-theme="dark"] .realm-catalog-card:hover {
+  border-color: #f59e0b !important;
+  box-shadow: 4px 4px 0px #78350f !important;
+}
+
+/* Dark Mode Buttons (Parchment & Forest) */
+html[data-theme="dark"] .pixel-btn-parchment {
+  background-color: #1e293b !important;
+  border-color: #374151 !important;
+  color: #f8fafc !important;
+  box-shadow: 3px 3px 0px #020617 !important;
+}
+html[data-theme="dark"] .pixel-btn-parchment:hover {
+  background-color: #334155 !important;
+  border-color: #f59e0b !important;
+  color: #fbbf24 !important;
+}
+
+html[data-theme="dark"] .pixel-btn-forest {
+  background-color: #1e293b !important;
+  border-color: #374151 !important;
+  color: #f8fafc !important;
+  box-shadow: 3px 3px 0px #020617 !important;
+}
+html[data-theme="dark"] .pixel-btn-forest:hover {
+  background-color: #334155 !important;
+  color: #f8fafc !important;
 }
 
 html[data-theme="dark"] .realm-status-header {
@@ -803,9 +867,45 @@ html[data-theme="white"] .corner-bracket {
   border-color: #cbd5e1 !important;
 }
 
-/* White Mode Realm Stage */
-html[data-theme="white"] .realm-stage-backdrop {
-  background: linear-gradient(to bottom, #f8fafc, #ffffff, #f1f5f9) !important;
+/* White Mode Realm Stage & Preview Stages */
+html[data-theme="white"] .realm-stage-backdrop,
+html[data-theme="white"] .realm-preview-stage {
+  background: linear-gradient(to bottom, #f8fafc, #f1f5f9) !important;
+  border-color: #cbd5e1 !important;
+}
+
+html[data-theme="white"] .realm-featured-info {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="white"] .realm-catalog-card {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 4px 4px 0px #cbd5e1 !important;
+}
+
+html[data-theme="white"] .pixel-btn-parchment {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 3px 3px 0px #cbd5e1 !important;
+}
+html[data-theme="white"] .pixel-btn-parchment:hover {
+  background-color: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+}
+
+html[data-theme="white"] .pixel-btn-forest {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 3px 3px 0px #cbd5e1 !important;
+}
+html[data-theme="white"] .pixel-btn-forest:hover {
+  background-color: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
 }
 
 html[data-theme="white"] .realm-status-header {

@@ -91,7 +91,7 @@ export const MyRealms: React.FC<MyRealmsProps> = ({ state, onNavigate, onStartSt
         >
           <div className="flex flex-col lg:flex-row">
             {/* Left: Lore, Metrics, Relic Inscription & Launch */}
-            <div className="p-6 md:p-8 lg:w-5/12 flex flex-col justify-between border-b lg:border-b-0 lg:border-r-2 border-pink-200 bg-[#fff8fa] relative">
+            <div className="realm-featured-info p-6 md:p-8 lg:w-5/12 flex flex-col justify-between border-b lg:border-b-0 lg:border-r-2 border-pink-200 bg-[#fff8fa] relative">
               <VineDecoration position="top-left" flowerColor="#f472b6" />
 
               <div>
@@ -211,7 +211,7 @@ export const MyRealms: React.FC<MyRealmsProps> = ({ state, onNavigate, onStartSt
             </div>
 
             {/* Right: 3D Isometric Realm Plot */}
-            <div className="lg:w-7/12 min-h-[360px] lg:min-h-[440px] bg-gradient-to-b from-[#fff0f5] to-[#fdf2f8] relative overflow-hidden flex items-center justify-center">
+            <div className="realm-stage-backdrop lg:w-7/12 min-h-[360px] lg:min-h-[440px] bg-gradient-to-b from-[#fff0f5] to-[#fdf2f8] relative overflow-hidden flex items-center justify-center">
               <IsometricRealmPlot
                 subjectId={activeHighlight}
                 level={highlightedSubject.level}
@@ -222,7 +222,7 @@ export const MyRealms: React.FC<MyRealmsProps> = ({ state, onNavigate, onStartSt
                 showRelic={true}
               />
               <div className="absolute top-4 left-4 z-20 pointer-events-none">
-                <div className="bg-white/95 border border-pink-300 px-3 py-1.5 rounded text-xs font-pixel text-pink-800 shadow-[2px_2px_0px_#fbcfe8]">
+                <div className="realm-status-header bg-white/95 border border-pink-300 px-3 py-1.5 rounded text-xs font-pixel text-pink-800 shadow-[2px_2px_0px_#fbcfe8]">
                   🗺️ Biome: {lore.biome}
                 </div>
               </div>
@@ -252,18 +252,18 @@ export const MyRealms: React.FC<MyRealmsProps> = ({ state, onNavigate, onStartSt
             <div
               key={id}
               onClick={() => setActiveHighlight(id)}
-              className={`group relative bg-white border-2 rounded-lg overflow-hidden transition-all duration-200 cursor-pointer flex flex-col justify-between shadow-[4px_4px_0px_#fbcfe8] ${
+              className={`realm-catalog-card group relative bg-white border-2 rounded-lg overflow-hidden transition-all duration-200 cursor-pointer flex flex-col justify-between shadow-[4px_4px_0px_#fbcfe8] ${
                 isSelected
                   ? 'border-pink-500 ring-2 ring-pink-400/50 -translate-y-1 shadow-[4px_4px_0px_#f472b6]'
                   : 'border-pink-200 hover:border-pink-400 hover:shadow-[4px_4px_0px_#f472b6]'
               }`}
             >
               {/* Corner pixel accents */}
-              <div className="absolute top-1 left-1 w-1.5 h-1.5 bg-pink-400 pointer-events-none z-20" />
-              <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-pink-400 pointer-events-none z-20" />
+              <div className="corner-bracket absolute top-1 left-1 w-1.5 h-1.5 bg-pink-400 pointer-events-none z-20" />
+              <div className="corner-bracket absolute top-1 right-1 w-1.5 h-1.5 bg-pink-400 pointer-events-none z-20" />
 
               {/* Miniature Isometric Scene preview */}
-              <div className="relative h-44 bg-gradient-to-b from-[#fff5f8] to-[#fce7f3] overflow-hidden flex items-center justify-center border-b border-pink-100">
+              <div className="realm-preview-stage relative h-44 bg-gradient-to-b from-[#fff5f8] to-[#fce7f3] overflow-hidden flex items-center justify-center border-b border-pink-100">
                 <IsometricRealmPlot
                   subjectId={id}
                   level={subject.level}

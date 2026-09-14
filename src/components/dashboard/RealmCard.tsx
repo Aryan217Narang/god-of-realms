@@ -38,7 +38,7 @@ export const RealmCard: React.FC<RealmCardProps> = ({ subject, onEnterRealm, onS
 
       {/* Top Miniature 3D Isometric Realm Preview (Visually Dominant) */}
       <div
-        className="relative h-48 overflow-hidden bg-gradient-to-b from-[#fff0f5] via-[#fff5f8] to-[#fdf2f8] cursor-pointer flex items-center justify-center border-b-2 border-pink-100"
+        className="realm-preview-stage relative h-48 overflow-hidden bg-gradient-to-b from-[#fff0f5] via-[#fff5f8] to-[#fdf2f8] cursor-pointer flex items-center justify-center border-b-2 border-pink-100"
         onClick={onEnterRealm}
       >
         <IsometricRealmPlot

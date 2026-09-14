@@ -76,7 +76,7 @@ export const PixelRealmScene: React.FC<PixelRealmSceneProps> = ({
 
   return (
     <div
-      className={`relative w-full overflow-hidden bg-gradient-to-b from-[#fff0f5] via-[#fdf2f8] to-[#fff5f8] flex items-center justify-center ${className}`}
+      className={`realm-stage-backdrop relative w-full overflow-hidden bg-gradient-to-b from-[#fff0f5] via-[#fdf2f8] to-[#fff5f8] flex items-center justify-center ${className}`}
       style={{ height }}
     >
       {/* 3D Isometric Diamond Land Plot */}
