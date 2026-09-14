@@ -4,35 +4,58 @@ import type { JwtHeader, JwtPayload } from '../types/auth';
 export const JWT_SECRET = 'god_of_realms_mythical_jwt_secret_2026';
 
 /**
- * Base64URL encoding (RFC 7515)
+ * Converts a UTF-8 string (JSON Header or Payload) to Base64URL
  */
-function base64UrlEncode(str: string): string {
-  const base64 = btoa(unescape(encodeURIComponent(str)));
-  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-/**
- * Base64URL decoding (RFC 7515)
- */
-function base64UrlDecode(str: string): string {
-  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
-  while (base64.length % 4) {
-    base64 += '=';
+function utf8ToBase64Url(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
   }
-  return decodeURIComponent(escape(atob(base64)));
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 /**
- * Converts ArrayBuffer to Base64URL
+ * Converts a Base64URL string back to a UTF-8 string
  */
-function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
+function base64UrlToUtf8(str: string): string {
+  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4) base64 += '=';
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new TextDecoder().decode(bytes);
+}
+
+/**
+ * Converts a raw binary ArrayBuffer (HMAC signature) directly to Base64URL without string mangling
+ */
+function bufferToBase64Url(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let binary = '';
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i]);
   }
-  return base64UrlEncode(binary);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
+
+/**
+ * Converts a Base64URL signature back to Uint8Array for cryptographic verification
+ */
+function base64UrlToBuffer(str: string): Uint8Array {
+  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4) base64 += '=';
+  const binary = atob(base64);
+  const buffer = new ArrayBuffer(binary.length);
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
 
 /**
  * Imports the secret key into Web Crypto SubtleCrypto
@@ -68,8 +91,8 @@ export async function signJwt(
     exp: now + expiresInSeconds,
   };
 
-  const encodedHeader = base64UrlEncode(JSON.stringify(header));
-  const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+  const encodedHeader = utf8ToBase64Url(JSON.stringify(header));
+  const encodedPayload = utf8ToBase64Url(JSON.stringify(payload));
   const dataToSign = `${encodedHeader}.${encodedPayload}`;
 
   const key = await getCryptoKey(secret);
@@ -80,7 +103,7 @@ export async function signJwt(
     enc.encode(dataToSign)
   );
 
-  const signature = arrayBufferToBase64Url(signatureBuffer);
+  const signature = bufferToBase64Url(signatureBuffer);
   return `${dataToSign}.${signature}`;
 }
 
@@ -100,32 +123,25 @@ export async function verifyJwt(
     const [encodedHeader, encodedPayload, signature] = parts;
     const dataToSign = `${encodedHeader}.${encodedPayload}`;
 
-    // Verify signature
+    // Verify cryptographic signature
     const key = await getCryptoKey(secret);
     const enc = new TextEncoder();
-    
-    // Decode signature from base64url back to bytes
-    let rawSig = signature.replace(/-/g, '+').replace(/_/g, '/');
-    while (rawSig.length % 4) rawSig += '=';
-    const sigBinary = atob(rawSig);
-    const sigBytes = new Uint8Array(sigBinary.length);
-    for (let i = 0; i < sigBinary.length; i++) {
-      sigBytes[i] = sigBinary.charCodeAt(i);
-    }
+    const sigBytes = base64UrlToBuffer(signature);
 
     const isValidSig = await crypto.subtle.verify(
       'HMAC',
       key,
-      sigBytes,
-      enc.encode(dataToSign)
+      sigBytes as unknown as BufferSource,
+      enc.encode(dataToSign) as unknown as BufferSource
     );
+
 
     if (!isValidSig) {
       return { valid: false, error: 'Cryptographic signature mismatch' };
     }
 
     // Decode and verify payload expiration
-    const payloadJson = base64UrlDecode(encodedPayload);
+    const payloadJson = base64UrlToUtf8(encodedPayload);
     const payload = JSON.parse(payloadJson) as JwtPayload;
 
     const now = Math.floor(Date.now() / 1000);
@@ -146,7 +162,7 @@ export function decodeJwt(token: string): JwtPayload | null {
   try {
     const parts = token.split('.');
     if (parts.length < 2) return null;
-    const payloadJson = base64UrlDecode(parts[1]);
+    const payloadJson = base64UrlToUtf8(parts[1]);
     return JSON.parse(payloadJson) as JwtPayload;
   } catch {
     return null;

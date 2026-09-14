@@ -50,8 +50,96 @@ function saveUsers(users: Record<string, StoredUserAccount>): void {
   }
 }
 
+import type { AppState, StudySession, SubjectId } from '../types';
+import { getDefaultState } from '../utils/gameLogic';
+
+function createDemoInitialState(): AppState {
+  const base = getDefaultState();
+  const now = Date.now();
+  const sessions: StudySession[] = [];
+
+  // Create 14 realistic completed sessions across the last 7 days (2 per day)
+  const schedule: Array<{ daysAgo: number; subjectId: SubjectId; duration: number; target: string }> = [
+    { daysAgo: 6, subjectId: 'hda_cognitive', duration: 50, target: 'Plant Healing Lavender Garden' },
+    { daysAgo: 6, subjectId: 'nosql', duration: 50, target: 'Carve Runestone Archway' },
+    { daysAgo: 5, subjectId: 'daa', duration: 50, target: 'Pave Mossy Forest Path' },
+    { daysAgo: 5, subjectId: 'os', duration: 50, target: 'Place Stone Hiking Steps' },
+    { daysAgo: 4, subjectId: 'nosql', duration: 50, target: 'Excavate Sunken Plaza' },
+    { daysAgo: 4, subjectId: 'gv', duration: 50, target: 'Erect Graph Coordinate Pylon' },
+    { daysAgo: 3, subjectId: 'os', duration: 50, target: 'Kindle Campfire Hearth' },
+    { daysAgo: 3, subjectId: 'hda_cognitive', duration: 50, target: 'Carve Serene Reflection Pond' },
+    { daysAgo: 2, subjectId: 'gv', duration: 50, target: 'Weave Glowing Sky Ley Bridge' },
+    { daysAgo: 2, subjectId: 'daa', duration: 50, target: 'Nurture Mystic Mushroom Ring' },
+    { daysAgo: 1, subjectId: 'os', duration: 50, target: 'Carve Mountain Hiking Trail' },
+    { daysAgo: 1, subjectId: 'nosql', duration: 50, target: 'Erect Ancient City Obelisk' },
+    { daysAgo: 0, subjectId: 'daa', duration: 50, target: 'Plant Ancient Alpine Pine' },
+    { daysAgo: 0, subjectId: 'hda_cognitive', duration: 50, target: 'Build Medical Research Pavilion' },
+  ];
+
+  schedule.forEach((item, index) => {
+    const sessionTime = new Date(now - item.daysAgo * 86400000 - 3600000 * 2).toISOString();
+    sessions.push({
+      id: `demo_sess_${index}`,
+      subjectId: item.subjectId,
+      buildTarget: item.target,
+      startTime: sessionTime,
+      endTime: new Date(now - item.daysAgo * 86400000 - 3600000).toISOString(),
+      durationMinutes: item.duration,
+      completed: true,
+      xpEarned: item.duration + 25,
+    });
+  });
+
+  // Calculate subject stats
+  const subjectIds: SubjectId[] = ['daa', 'os', 'nosql', 'hda_cognitive', 'gv'];
+  subjectIds.forEach(id => {
+    const subSessions = sessions.filter(s => s.subjectId === id);
+    const totalMinutes = subSessions.reduce((acc, s) => acc + s.durationMinutes, 0);
+    const xp = subSessions.reduce((acc, s) => acc + s.xpEarned, 0);
+    const todayMinutes = subSessions.filter(s => s.startTime.slice(0, 10) === base.lastDailyReset).reduce((acc, s) => acc + s.durationMinutes, 0);
+
+    const unlocked: Record<SubjectId, string[]> = {
+      daa: ['daa_sapling', 'daa_path', 'daa_bush', 'daa_flowers', 'daa_stream'],
+      os: ['os_basecamp', 'os_trail', 'os_tent', 'os_cave', 'os_flag1'],
+      nosql: ['nosql_road', 'nosql_terminal', 'nosql_small_building', 'nosql_neon', 'nosql_server'],
+      hda_cognitive: ['hda_entrance', 'hda_station', 'hda_lab', 'hda_garden', 'hda_brain_monument'],
+      gv: ['gv_portal', 'gv_island1', 'gv_bridge', 'gv_temple'],
+    };
+
+    base.subjects[id] = {
+      ...base.subjects[id],
+      totalMinutes,
+      todayMinutes,
+      weekMinutes: totalMinutes,
+      monthMinutes: totalMinutes,
+      xp,
+      level: 5,
+      sessionsCompleted: subSessions.length,
+      currentStreak: 5,
+      longestStreak: 7,
+      lastStudiedDate: base.lastDailyReset,
+      unlockedElements: unlocked[id] || base.subjects[id].unlockedElements,
+    };
+  });
+
+  base.sessions = sessions;
+  base.globalStreak = 5;
+  base.globalLongestStreak = 7;
+  base.globalLastStudiedDate = base.lastDailyReset;
+
+  // Unlock demo achievements
+  base.achievements = base.achievements.map(a => {
+    if (['consistency_master', 'speed_learner', 'knowledge_explorer'].includes(a.id)) {
+      return { ...a, unlocked: true, unlockedAt: new Date(now - 86400000 * 2).toISOString() };
+    }
+    return a;
+  });
+
+  return base;
+}
+
 /**
- * Seed initial demo adventurer account if none exist
+ * Seed initial demo adventurer account and pre-built flourishing realm progress
  */
 export async function seedDemoAccountIfNeeded(): Promise<void> {
   const users = loadUsers();
@@ -72,7 +160,19 @@ export async function seedDemoAccountIfNeeded(): Promise<void> {
     users[demoUser.id] = demoUser;
     saveUsers(users);
   }
+
+  // Ensure pre-leveled realm progress exists for demo account
+  const demoStorageKey = 'god_of_realms_user_usr_demo_hero';
+  try {
+    const existing = localStorage.getItem(demoStorageKey);
+    if (!existing) {
+      localStorage.setItem(demoStorageKey, JSON.stringify(createDemoInitialState()));
+    }
+  } catch (err) {
+    console.error('Failed to seed demo realm state:', err);
+  }
 }
+
 
 /**
  * Register a new Adventurer account and issue a signed JWT

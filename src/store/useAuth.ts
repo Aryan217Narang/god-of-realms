@@ -5,15 +5,43 @@ import {
   registerUser,
   verifyCurrentSession,
   clearStoredToken,
+  getStoredToken,
   seedDemoAccountIfNeeded,
 } from '../services/authService';
+import { decodeJwt, isTokenExpired } from '../services/jwt';
+
+function getInitialAuth(): { user: User | null; token: string | null } {
+  try {
+    const token = getStoredToken();
+    if (!token) return { user: null, token: null };
+    const payload = decodeJwt(token);
+    if (!payload || isTokenExpired(payload)) {
+      clearStoredToken();
+      return { user: null, token: null };
+    }
+    return {
+      user: {
+        id: payload.sub,
+        username: payload.username,
+        email: payload.email,
+        title: payload.title,
+        avatarId: payload.avatarId,
+        createdAt: new Date(payload.iat * 1000).toISOString(),
+      },
+      token,
+    };
+  } catch {
+    return { user: null, token: null };
+  }
+}
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [initial] = useState(getInitialAuth);
+  const [user, setUser] = useState<User | null>(initial.user);
+  const [token, setToken] = useState<string | null>(initial.token);
+  const [isLoading, setIsLoading] = useState<boolean>(!initial.user);
 
-  // Initialize session on mount
+  // Background verification & demo account seeding
   useEffect(() => {
     let mounted = true;
 

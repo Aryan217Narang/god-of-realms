@@ -4,6 +4,7 @@ import { useStore } from './store/useStore';
 import { useAuth } from './store/useAuth';
 import { Navigation, type Page } from './components/layout/Navigation';
 import { AuthModal } from './components/auth/AuthModal';
+import { AuthPortal } from './pages/AuthPortal';
 import { Dashboard } from './pages/Dashboard';
 import { MyRealms } from './pages/MyRealms';
 import { StudyTimer } from './pages/StudyTimer';
@@ -19,6 +20,7 @@ export default function App() {
   const [timerSelectedSubject, setTimerSelectedSubject] = useState<SubjectId>('daa');
   const [toasts, setToasts] = useState<{ id: number; message: string }[]>([]);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isGuestMode, setIsGuestMode] = useState(false);
 
   const auth = useAuth();
 
@@ -146,8 +148,36 @@ export default function App() {
 
   const handleLogout = useCallback(() => {
     auth.logout();
+    setIsGuestMode(false);
     addToast('👋 Adventurer session closed. Progress securely preserved.');
   }, [auth, addToast]);
+
+  // Dedicated Startup Authentication Page
+  if (!auth.isAuthenticated && !isGuestMode) {
+    return (
+      <div className={`theme-${state.settings.theme}`}>
+        <AuthPortal
+          onLogin={auth.login}
+          onRegister={auth.register}
+          onContinueAsGuest={() => setIsGuestMode(true)}
+          onSuccessToast={addToast}
+          currentTheme={state.settings.theme}
+          onSelectTheme={(th) => updateSettings({ theme: th })}
+        />
+        {/* Toast notifications */}
+        <div className="fixed bottom-6 right-4 z-50 space-y-2 pointer-events-none">
+          {toasts.map(t => (
+            <div
+              key={t.id}
+              className="toast px-4 py-2.5 rounded bg-white border-2 border-pink-400 text-pink-700 text-xs font-pixel shadow-[3px_3px_0px_#f472b6] max-w-xs pointer-events-auto animate-fade-up font-bold"
+            >
+              {t.message}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex w-full min-h-screen bg-[#fff5f8] text-slate-900 relative">
