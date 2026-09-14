@@ -1,0 +1,163 @@
+import type { JwtHeader, JwtPayload } from '../types/auth';
+
+// Standard Secret Key for God of Realms token signing
+export const JWT_SECRET = 'god_of_realms_mythical_jwt_secret_2026';
+
+/**
+ * Base64URL encoding (RFC 7515)
+ */
+function base64UrlEncode(str: string): string {
+  const base64 = btoa(unescape(encodeURIComponent(str)));
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/**
+ * Base64URL decoding (RFC 7515)
+ */
+function base64UrlDecode(str: string): string {
+  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4) {
+    base64 += '=';
+  }
+  return decodeURIComponent(escape(atob(base64)));
+}
+
+/**
+ * Converts ArrayBuffer to Base64URL
+ */
+function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return base64UrlEncode(binary);
+}
+
+/**
+ * Imports the secret key into Web Crypto SubtleCrypto
+ */
+async function getCryptoKey(secret: string): Promise<CryptoKey> {
+  const enc = new TextEncoder();
+  return await crypto.subtle.importKey(
+    'raw',
+    enc.encode(secret),
+    { name: 'HMAC', hash: { name: 'SHA-256' } },
+    false,
+    ['sign', 'verify']
+  );
+}
+
+/**
+ * Sign a standard JSON Web Token (RFC 7519) using HS256
+ */
+export async function signJwt(
+  payloadData: Omit<JwtPayload, 'iat' | 'exp'>,
+  secret: string = JWT_SECRET,
+  expiresInSeconds: number = 7 * 24 * 60 * 60 // 7 days
+): Promise<string> {
+  const header: JwtHeader = {
+    alg: 'HS256',
+    typ: 'JWT',
+  };
+
+  const now = Math.floor(Date.now() / 1000);
+  const payload: JwtPayload = {
+    ...payloadData,
+    iat: now,
+    exp: now + expiresInSeconds,
+  };
+
+  const encodedHeader = base64UrlEncode(JSON.stringify(header));
+  const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+  const dataToSign = `${encodedHeader}.${encodedPayload}`;
+
+  const key = await getCryptoKey(secret);
+  const enc = new TextEncoder();
+  const signatureBuffer = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    enc.encode(dataToSign)
+  );
+
+  const signature = arrayBufferToBase64Url(signatureBuffer);
+  return `${dataToSign}.${signature}`;
+}
+
+/**
+ * Verify a JWT signature and check its expiration
+ */
+export async function verifyJwt(
+  token: string,
+  secret: string = JWT_SECRET
+): Promise<{ valid: boolean; payload?: JwtPayload; error?: string }> {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return { valid: false, error: 'Invalid token structure' };
+    }
+
+    const [encodedHeader, encodedPayload, signature] = parts;
+    const dataToSign = `${encodedHeader}.${encodedPayload}`;
+
+    // Verify signature
+    const key = await getCryptoKey(secret);
+    const enc = new TextEncoder();
+    
+    // Decode signature from base64url back to bytes
+    let rawSig = signature.replace(/-/g, '+').replace(/_/g, '/');
+    while (rawSig.length % 4) rawSig += '=';
+    const sigBinary = atob(rawSig);
+    const sigBytes = new Uint8Array(sigBinary.length);
+    for (let i = 0; i < sigBinary.length; i++) {
+      sigBytes[i] = sigBinary.charCodeAt(i);
+    }
+
+    const isValidSig = await crypto.subtle.verify(
+      'HMAC',
+      key,
+      sigBytes,
+      enc.encode(dataToSign)
+    );
+
+    if (!isValidSig) {
+      return { valid: false, error: 'Cryptographic signature mismatch' };
+    }
+
+    // Decode and verify payload expiration
+    const payloadJson = base64UrlDecode(encodedPayload);
+    const payload = JSON.parse(payloadJson) as JwtPayload;
+
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp && payload.exp < now) {
+      return { valid: false, error: 'Token has expired', payload };
+    }
+
+    return { valid: true, payload };
+  } catch (err: any) {
+    return { valid: false, error: err?.message || 'Token verification failed' };
+  }
+}
+
+/**
+ * Decodes a JWT payload without signature verification (useful for UI rendering)
+ */
+export function decodeJwt(token: string): JwtPayload | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const payloadJson = base64UrlDecode(parts[1]);
+    return JSON.parse(payloadJson) as JwtPayload;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Checks whether a token payload is expired
+ */
+export function isTokenExpired(payload: JwtPayload): boolean {
+  if (!payload.exp) return false;
+  const now = Math.floor(Date.now() / 1000);
+  return payload.exp < now;
+}

@@ -1,7 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { SubjectId } from './types';
 import { useStore } from './store/useStore';
+import { useAuth } from './store/useAuth';
 import { Navigation, type Page } from './components/layout/Navigation';
+import { AuthModal } from './components/auth/AuthModal';
 import { Dashboard } from './pages/Dashboard';
 import { MyRealms } from './pages/MyRealms';
 import { StudyTimer } from './pages/StudyTimer';
@@ -16,6 +18,9 @@ export default function App() {
   const [realmDetailId, setRealmDetailId] = useState<SubjectId | null>(null);
   const [timerSelectedSubject, setTimerSelectedSubject] = useState<SubjectId>('daa');
   const [toasts, setToasts] = useState<{ id: number; message: string }[]>([]);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  const auth = useAuth();
 
   const {
     state,
@@ -31,7 +36,7 @@ export default function App() {
     resetAllData,
     exportData,
     importData,
-  } = useStore();
+  } = useStore(auth.user?.id);
 
   // Apply theme
   useEffect(() => {
@@ -139,6 +144,11 @@ export default function App() {
     }
   };
 
+  const handleLogout = useCallback(() => {
+    auth.logout();
+    addToast('👋 Adventurer session closed. Progress securely preserved.');
+  }, [auth, addToast]);
+
   return (
     <div className="flex w-full min-h-screen bg-[#fff5f8] text-slate-900 relative">
       {/* Top Right Theme Selector: Pink, Dark, White */}
@@ -147,7 +157,13 @@ export default function App() {
         onSelectTheme={(th) => updateSettings({ theme: th })}
       />
 
-      <Navigation currentPage={currentPage} onNavigate={navigate} />
+      <Navigation
+        currentPage={currentPage}
+        onNavigate={navigate}
+        user={auth.user}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onLogout={handleLogout}
+      />
 
       {/* Main content area */}
       <main className="flex-1 min-w-0 w-full min-h-screen pb-20 md:pb-0 overflow-x-hidden bg-[#fff5f8] flex flex-col">
@@ -178,6 +194,16 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* JWT Authentication Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onLogin={auth.login}
+        onRegister={auth.register}
+        onSuccessToast={addToast}
+      />
     </div>
   );
 }
+

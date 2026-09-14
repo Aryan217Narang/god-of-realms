@@ -1,12 +1,16 @@
 import React from 'react';
-import { LayoutDashboard, Globe, Timer, BarChart3, Trophy, Settings } from 'lucide-react';
+import { LayoutDashboard, Globe, Timer, BarChart3, Trophy, Settings, LogIn, LogOut, Shield } from 'lucide-react';
 import { VineDecoration } from '../journal/VineDecoration';
+import type { User } from '../../types/auth';
 
 export type Page = 'dashboard' | 'realms' | 'timer' | 'statistics' | 'achievements' | 'settings' | 'realm-detail';
 
 interface NavProps {
   currentPage: Page;
   onNavigate: (page: Page, extra?: string) => void;
+  user: User | null;
+  onOpenAuth: () => void;
+  onLogout: () => void;
 }
 
 const navItems = [
@@ -18,7 +22,20 @@ const navItems = [
   { id: 'settings', label: 'Settings', icon: Settings },
 ] as const;
 
-export const Navigation: React.FC<NavProps> = ({ currentPage, onNavigate }) => {
+const AVATAR_EMOJIS: Record<string, string> = {
+  scholar: '📜',
+  warrior: '🛡️',
+  mage: '🔮',
+  ranger: '🏹',
+};
+
+export const Navigation: React.FC<NavProps> = ({
+  currentPage,
+  onNavigate,
+  user,
+  onOpenAuth,
+  onLogout,
+}) => {
   return (
     <>
       {/* Desktop Ancient Equipment Panel Sidebar */}
@@ -32,14 +49,10 @@ export const Navigation: React.FC<NavProps> = ({ currentPage, onNavigate }) => {
             {/* Mythical Relic Axe Logo */}
             <div className="w-10 h-10 rounded bg-pink-50 border-2 border-pink-400 flex items-center justify-center shadow-[2px_2px_0px_#f472b6] relative overflow-hidden group">
               <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                {/* Double-headed ancient relic axe */}
                 <line x1="8" y1="26" x2="24" y2="6" stroke="#8c6036" strokeWidth="3" strokeLinecap="square" />
                 <line x1="9" y1="25" x2="23" y2="7" stroke="#e8ba6e" strokeWidth="1.5" strokeLinecap="square" />
-                {/* Left blade */}
                 <path d="M18 10C12 5 6 9 8 16C10 20 16 18 20 14Z" fill="#f472b6" stroke="#ec4899" strokeWidth="1.5" />
-                {/* Right blade */}
                 <path d="M22 6C28 3 31 8 29 14C27 18 22 17 19 11Z" fill="#f472b6" stroke="#ec4899" strokeWidth="1.5" />
-                {/* Central pink gem */}
                 <rect x="18" y="10" width="3" height="3" fill="#be185d" />
               </svg>
             </div>
@@ -74,13 +87,11 @@ export const Navigation: React.FC<NavProps> = ({ currentPage, onNavigate }) => {
                     : 'border-transparent text-slate-600 hover:text-pink-600 hover:bg-pink-50 hover:border-pink-200'
                 }`}
               >
-                {/* Active Quest Marker Arrow */}
                 {active && (
                   <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-pink-500 shadow-[0_0_8px_#ec4899]" />
                 )}
 
                 <div className="flex items-center gap-3">
-                  {/* Icon Container */}
                   <div
                     className={`w-7 h-7 rounded flex items-center justify-center border text-xs ${
                       active
@@ -96,7 +107,6 @@ export const Navigation: React.FC<NavProps> = ({ currentPage, onNavigate }) => {
                   </span>
                 </div>
 
-                {/* Pixel Quest Indicator */}
                 {active ? (
                   <span className="text-[10px] text-pink-600 font-pixel-mono animate-pulse">
                     ▶
@@ -111,14 +121,47 @@ export const Navigation: React.FC<NavProps> = ({ currentPage, onNavigate }) => {
           })}
         </nav>
 
-        {/* Bottom Tagline & Lore Plaque */}
-        <div className="p-4 border-t-2 border-pink-200 bg-pink-50/60 text-center">
-          <div className="text-[10px] font-pixel text-pink-600 font-bold">
-            "Master Your Knowledge."
-          </div>
-          <div className="text-[9px] font-pixel text-slate-500 mt-0.5">
-            Build Your Worlds.
-          </div>
+        {/* User Adventurer Profile / Auth Plaque */}
+        <div className="p-3 border-t-2 border-pink-200 bg-pink-50/60">
+          {user ? (
+            <div className="p-2.5 rounded-lg border-2 border-pink-300 bg-white shadow-[2px_2px_0px_#f472b6]">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <span className="text-xl flex-shrink-0" role="img" aria-label="avatar">
+                    {AVATAR_EMOJIS[user.avatarId] || '⚔️'}
+                  </span>
+                  <div className="truncate">
+                    <div className="text-xs font-pixel font-bold text-slate-800 truncate">
+                      {user.username}
+                    </div>
+                    <div className="text-[9px] font-pixel text-pink-600 truncate">
+                      {user.title}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={onLogout}
+                  title="Sign Out"
+                  className="p-1.5 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors cursor-pointer"
+                  aria-label="Sign Out"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="text-[9px] font-pixel text-emerald-600 flex items-center gap-1">
+                <Shield className="w-3 h-3" />
+                <span>JWT Active</span>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={onOpenAuth}
+              className="w-full py-2 px-3 bg-pink-500 hover:bg-pink-600 text-white rounded-lg border-2 border-pink-600 font-pixel font-bold text-xs shadow-[2px_2px_0px_#db2777] active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Adventurer Sign In</span>
+            </button>
+          )}
         </div>
       </aside>
 
@@ -142,7 +185,22 @@ export const Navigation: React.FC<NavProps> = ({ currentPage, onNavigate }) => {
             </button>
           );
         })}
+
+        {/* Mobile Auth Button */}
+        <button
+          onClick={user ? onLogout : onOpenAuth}
+          className="flex flex-col items-center gap-1 p-1 rounded transition-all cursor-pointer text-slate-500 hover:text-pink-500"
+          title={user ? `Signed in as ${user.username} (Click to Sign Out)` : 'Sign In'}
+        >
+          <div className="p-1.5 rounded bg-pink-50 border border-pink-200 text-pink-500">
+            {user ? <LogOut className="w-4 h-4 text-red-500" /> : <LogIn className="w-4 h-4 text-pink-600" />}
+          </div>
+          <span className="text-[9px] font-pixel truncate max-w-[50px]">
+            {user ? 'Exit' : 'Sign In'}
+          </span>
+        </button>
       </nav>
     </>
   );
 };
+

@@ -6,11 +6,18 @@ import {
   getSubjectMinutesForPeriod, todayDateString,
 } from '../utils/gameLogic';
 
-const STORAGE_KEY = 'god_of_realms_v1';
+function getStorageKey(userId?: string | null): string {
+  return userId ? `god_of_realms_user_${userId}` : 'god_of_realms_v1';
+}
 
-function loadState(): AppState {
+function loadState(userId?: string | null): AppState {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const key = getStorageKey(userId);
+    let raw = localStorage.getItem(key);
+    // If user has no saved state yet but guest state exists, migrate guest state
+    if (!raw && userId) {
+      raw = localStorage.getItem('god_of_realms_v1');
+    }
     if (!raw) return getDefaultState();
     const stored = JSON.parse(raw) as AppState;
     const defaults = getDefaultState();
@@ -44,9 +51,10 @@ function loadState(): AppState {
   }
 }
 
-function saveState(state: AppState): void {
+function saveState(state: AppState, userId?: string | null): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const key = getStorageKey(userId);
+    localStorage.setItem(key, JSON.stringify(state));
   } catch (e) {
     console.error('Failed to save state:', e);
   }
@@ -56,15 +64,24 @@ function saveState(state: AppState): void {
 // The Main Store Hook
 // ============================================================
 
-export function useStore() {
-  const [state, setState] = useState<AppState>(loadState);
+export function useStore(userId?: string | null) {
+  const [state, setState] = useState<AppState>(() => loadState(userId));
   const stateRef = useRef(state);
   stateRef.current = state;
 
+  // Sync state when active adventurer user changes
+  const prevUserIdRef = useRef(userId);
+  useEffect(() => {
+    if (prevUserIdRef.current !== userId) {
+      prevUserIdRef.current = userId;
+      setState(loadState(userId));
+    }
+  }, [userId]);
+
   // Persist on change
   useEffect(() => {
-    saveState(state);
-  }, [state]);
+    saveState(state, userId);
+  }, [state, userId]);
 
   // Timer tick
   useEffect(() => {
