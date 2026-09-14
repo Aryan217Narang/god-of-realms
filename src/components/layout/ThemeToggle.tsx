@@ -21,7 +21,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
 }) => {
   return (
     <div
-      className={`theme-toggle-container flex items-center bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1 rounded-lg border-2 border-pink-300 shadow-[2px_2px_0px_rgba(244,114,182,0.6)] select-none transition-all duration-200 ${className}`}
+      className={`theme-toggle-container fixed top-3 right-3 md:right-6 z-50 flex items-center bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1 rounded-lg border-2 border-pink-300 dark:border-amber-500/70 shadow-[2px_2px_0px_rgba(244,114,182,0.6)] dark:shadow-[2px_2px_0px_#020617] select-none transition-all duration-200 ${className}`}
       role="group"
       aria-label="Theme Selector"
     >
@@ -42,7 +42,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
                   : th.id === 'dark'
                   ? 'bg-amber-500 text-slate-950 shadow-sm border border-amber-600'
                   : 'bg-slate-900 text-white shadow-sm border border-slate-950'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                : 'text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800'
             }`}
           >
             <Icon className="w-3.5 h-3.5" />

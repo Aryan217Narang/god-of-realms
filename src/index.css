@@ -489,8 +489,20 @@ html[data-theme="dark"] .text-pink-950,
 html[data-theme="dark"] .text-slate-600,
 html[data-theme="dark"] .text-slate-500,
 html[data-theme="dark"] .text-slate-400,
-.theme-dark .text-slate-500 {
-  color: #94a3b8 !important;
+.theme-dark .text-slate-600,
+.theme-dark .text-slate-500,
+.theme-dark .text-slate-400 {
+  color: #cbd5e1 !important;
+}
+
+/* Pink Mode Text Legibility Enhancement (Crisp slate so subtitles & secondary text are never washed out) */
+html[data-theme="pink"] .text-slate-400,
+html[data-theme="pink"] .text-slate-500,
+body.theme-pink .text-slate-400,
+body.theme-pink .text-slate-500,
+.theme-pink .text-slate-400,
+.theme-pink .text-slate-500 {
+  color: #475569 !important;
 }
 
 html[data-theme="dark"] .text-pink-600,

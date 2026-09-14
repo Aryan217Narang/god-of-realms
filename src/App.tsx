@@ -13,6 +13,7 @@ import { Achievements } from './pages/Achievements';
 import { Settings } from './pages/Settings';
 import { RealmDetail } from './pages/RealmDetail';
 import { FloatingMiniTimer } from './components/timer/FloatingMiniTimer';
+import { ThemeToggle } from './components/layout/ThemeToggle';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -183,15 +184,19 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row w-full min-h-screen bg-[#fff5f8] text-slate-900 relative">
+    <div className="flex w-full min-h-screen bg-[#fff5f8] text-slate-900 relative">
+      {/* Top Right Theme Selector: Pink, Dark, White */}
+      <ThemeToggle
+        currentTheme={state.settings.theme}
+        onSelectTheme={(th) => updateSettings({ theme: th })}
+      />
+
       <Navigation
         currentPage={currentPage}
         onNavigate={navigate}
         user={auth.user}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onLogout={handleLogout}
-        currentTheme={state.settings.theme}
-        onSelectTheme={(th) => updateSettings({ theme: th })}
       />
 
       {/* Main content area */}

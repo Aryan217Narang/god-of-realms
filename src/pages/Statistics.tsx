@@ -316,7 +316,7 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
                   ✕ Clear
                 </button>
               )}
-              <div className="flex gap-1 bg-pink-50 p-1 rounded border border-pink-200 self-start sm:self-auto">
+              <div className="flex gap-1 bg-pink-50 dark:bg-slate-800 p-1 rounded border border-pink-200 dark:border-slate-700 self-start sm:self-auto">
                 <button
                   onClick={() => {
                     setPeriod(7);
@@ -324,7 +324,9 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
                     setSelectedBarLabel(null);
                   }}
                   className={`px-3 py-1 rounded text-xs font-mono font-bold cursor-pointer transition-all ${
-                    period === 7 ? 'bg-pink-500 text-white shadow-sm' : 'text-slate-600 hover:text-pink-700'
+                    period === 7
+                      ? 'bg-pink-500 dark:bg-amber-500 text-white dark:text-slate-950 shadow-sm'
+                      : 'text-slate-700 dark:text-slate-200 hover:text-pink-700 dark:hover:text-amber-300 hover:bg-pink-100 dark:hover:bg-slate-700'
                   }`}
                 >
                   7 Days
@@ -336,7 +338,9 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
                     setSelectedBarLabel(null);
                   }}
                   className={`px-3 py-1 rounded text-xs font-mono font-bold cursor-pointer transition-all ${
-                    period === 30 ? 'bg-pink-500 text-white shadow-sm' : 'text-slate-600 hover:text-pink-700'
+                    period === 30
+                      ? 'bg-pink-500 dark:bg-amber-500 text-white dark:text-slate-950 shadow-sm'
+                      : 'text-slate-700 dark:text-slate-200 hover:text-pink-700 dark:hover:text-amber-300 hover:bg-pink-100 dark:hover:bg-slate-700'
                   }`}
                 >
                   30 Days
@@ -461,7 +465,7 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
                     ✕ Reset
                   </button>
                 )}
-                <div className="flex gap-1 bg-pink-50 p-1 rounded border border-pink-200 self-start sm:self-auto flex-wrap">
+                <div className="flex gap-1 bg-pink-50 dark:bg-slate-800 p-1 rounded border border-pink-200 dark:border-slate-700 self-start sm:self-auto flex-wrap">
                   {[
                     { id: 'today', label: '📅 Today' },
                     { id: '7d', label: '7 Days' },
@@ -477,8 +481,8 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
                       }}
                       className={`px-2.5 py-1 rounded text-[11px] font-mono font-bold cursor-pointer transition-all ${
                         !selectedBarDate && piePeriod === p.id
-                          ? 'bg-pink-500 text-white shadow-sm'
-                          : 'text-slate-600 hover:text-pink-700'
+                          ? 'bg-pink-500 dark:bg-amber-500 text-white dark:text-slate-950 shadow-sm'
+                          : 'text-slate-700 dark:text-slate-200 hover:text-pink-700 dark:hover:text-amber-300 hover:bg-pink-100 dark:hover:bg-slate-700'
                       }`}
                     >
                       {p.label}
@@ -557,10 +561,10 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
           variant="stone"
           className="border-pink-300 shadow-[4px_4px_0px_#fbcfe8]"
         >
-          <div className="flex items-center justify-between gap-2 mb-4 border-b border-pink-200 pb-3">
+          <div className="flex items-center justify-between gap-2 mb-4 border-b border-pink-200 dark:border-slate-800 pb-3">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-sm font-pixel-heading text-pink-950">
+                <h3 className="text-sm font-pixel-heading text-pink-950 dark:text-amber-400">
                   REALM STUDY TIMES
                 </h3>
                 {selectedBarDate && (
@@ -569,7 +573,7 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
                   </span>
                 )}
               </div>
-              <p className="text-xs font-pixel text-slate-500 mt-0.5">
+              <p className="text-xs font-pixel text-slate-600 dark:text-slate-300 mt-0.5">
                 {selectedBarDate
                   ? `Specific study times for ${selectedBarLabel || selectedBarDate}`
                   : piePeriod === 'today'
@@ -578,8 +582,8 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
               </p>
             </div>
             <div className="text-right flex-shrink-0">
-              <span className="text-[10px] font-pixel text-slate-500 block uppercase font-bold">Total Studied</span>
-              <span className="text-sm font-mono font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded border border-pink-200">
+              <span className="text-[10px] font-pixel text-slate-600 dark:text-slate-400 block uppercase font-bold">Total Studied</span>
+              <span className="text-sm font-mono font-bold text-pink-600 dark:text-amber-300 bg-pink-50 dark:bg-slate-800 px-2 py-0.5 rounded border border-pink-200 dark:border-slate-700">
                 {formatTime(totalPeriodMinutes, timeFormat)}
               </span>
             </div>
@@ -594,31 +598,37 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
                   key={sub.id}
                   className={`p-2.5 rounded-lg border transition-all ${
                     hasTime
-                      ? 'bg-pink-50/70 border-pink-300 shadow-sm'
-                      : 'bg-slate-50/50 border-slate-200 opacity-60'
+                      ? 'bg-pink-50/80 dark:bg-slate-800/90 border-pink-300 dark:border-slate-700 shadow-sm'
+                      : 'bg-white/90 dark:bg-slate-800/50 border-pink-200 dark:border-slate-700/80'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2 text-xs font-pixel mb-1.5">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="w-3 h-3 rounded-full flex-shrink-0 shadow-xs" style={{ backgroundColor: sub.color }} />
-                      <span className="font-bold truncate" style={{ color: hasTime ? sub.color : '#475569' }}>
+                      <span className="font-bold truncate" style={{ color: sub.color }}>
                         {sub.name}
                       </span>
-                      <span className="text-slate-400 text-[11px] truncate hidden sm:inline">
+                      <span className="text-slate-700 dark:text-slate-300 text-[11px] font-semibold truncate hidden sm:inline">
                         — {sub.realmName}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 font-mono text-[11px] font-bold flex-shrink-0">
-                      <span className={`px-2 py-0.5 rounded ${hasTime ? 'bg-pink-100 text-pink-800 border border-pink-200' : 'text-slate-400'}`}>
+                      <span
+                        className={`px-2 py-0.5 rounded border ${
+                          hasTime
+                            ? 'bg-pink-100 dark:bg-amber-950/40 text-pink-800 dark:text-amber-300 border-pink-300 dark:border-amber-700/60 shadow-xs'
+                            : 'bg-white/90 dark:bg-slate-800 text-slate-800 dark:text-slate-100 border-pink-200 dark:border-slate-700'
+                        }`}
+                      >
                         {formatTime(sub.minutes, timeFormat)}
                       </span>
-                      <span className="text-[10px] text-slate-500 bg-white px-1.5 py-0.5 rounded border border-pink-100 min-w-[36px] text-center">
+                      <span className="text-[10px] text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-pink-200 dark:border-slate-700 min-w-[36px] text-center font-bold">
                         {percent}%
                       </span>
                     </div>
                   </div>
                   {/* Proportional focus bar */}
-                  <div className="w-full h-2 bg-pink-100/70 rounded-full overflow-hidden border border-pink-200">
+                  <div className="w-full h-2 bg-pink-100 dark:bg-slate-700 rounded-full overflow-hidden border border-pink-200 dark:border-slate-600">
                     <div
                       className="h-full rounded-full transition-all duration-700"
                       style={{
@@ -634,96 +644,59 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
         </AncientJournalPanel>
       </div>
 
-      {/* ISOMETRIC REALM ARCHITECTURE & RESTORATION (Pushed below in a bigger vertical format, time removed) */}
+      {/* ISOMETRIC REALM ARCHITECTURE & RESTORATION (Compact full horizontal layout, time removed) */}
       <div className="mb-8">
         <AncientJournalPanel
           variant="stone"
           className="border-pink-300 shadow-[4px_4px_0px_#fbcfe8]"
         >
-          <div className="mb-5 border-b border-pink-200 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="mb-4 border-b border-pink-200 dark:border-slate-800 pb-3 flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h3 className="text-sm md:text-base font-pixel-heading text-pink-950">
+              <h3 className="text-sm md:text-base font-pixel-heading text-pink-950 dark:text-amber-400">
                 ISOMETRIC REALM ARCHITECTURE & RESTORATION
               </h3>
-              <p className="text-xs font-pixel text-slate-500 mt-0.5">
+              <p className="text-xs font-pixel text-slate-600 dark:text-slate-300 mt-0.5">
                 World restoration levels and sacred monument awakenings across the five realms
               </p>
             </div>
-            <span className="text-[11px] font-pixel text-pink-600 bg-pink-50 px-3 py-1 rounded border border-pink-200 font-bold self-start sm:self-auto">
+            <span className="text-[11px] font-pixel text-pink-600 dark:text-amber-400 bg-pink-50 dark:bg-slate-800 px-2.5 py-1 rounded border border-pink-200 dark:border-slate-700 font-bold">
               5 Mythic Domains
             </span>
           </div>
 
-          <div className="space-y-4">
-            {realmProgress.map(r => {
-              const maxLevel = 20;
-              const levelPercent = Math.min(100, Math.round((r.level / maxLevel) * 100));
-              return (
-                <div
-                  key={r.id}
-                  className="p-4 rounded-xl bg-white border-2 border-pink-200 shadow-[3px_3px_0px_#fbcfe8] hover:border-pink-400 transition-all space-y-3"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center border-2 flex-shrink-0"
-                        style={{
-                          backgroundColor: `${r.color}15`,
-                          borderColor: r.color,
-                        }}
-                      >
-                        <RelicDisplay subjectId={r.id} level={r.level} size="sm" showTooltip={false} />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-bold font-pixel text-sm" style={{ color: r.color }}>
-                            {r.realmName}
-                          </h4>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-pink-200 bg-pink-50 text-pink-700 font-bold">
-                            {r.shortName}
-                          </span>
-                        </div>
-                        <p className="text-xs font-pixel text-slate-500 mt-0.5">
-                          {r.name}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Realm Stats (Purely Level and Monuments - Time Removed!) */}
-                    <div className="flex items-center gap-2 font-mono text-xs font-bold self-start sm:self-auto flex-wrap">
-                      <span className="px-2.5 py-1 rounded-lg bg-pink-50 text-pink-800 border border-pink-200 shadow-sm">
-                        🏛️ Lv.{r.level} / {maxLevel}
-                      </span>
-                      <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-sm">
-                        ✨ {r.elements} Monuments Awoken
-                      </span>
-                      <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 text-[11px]">
-                        {levelPercent}% Restored
-                      </span>
-                    </div>
+          <div className="space-y-3 py-1">
+            {realmProgress.map(r => (
+              <div
+                key={r.id}
+                className="space-y-1.5 p-2.5 rounded-lg bg-pink-50/50 dark:bg-slate-800/60 border border-pink-200 dark:border-slate-700 hover:bg-pink-50/80 dark:hover:bg-slate-800 transition-colors"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-1 text-xs font-pixel">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: r.color }} />
+                    <span className="font-bold text-slate-900 dark:text-slate-100" style={{ color: r.color }}>
+                      {r.name}
+                    </span>
+                    <span className="text-slate-700 dark:text-slate-300 text-[11px] font-semibold truncate max-w-[160px] sm:max-w-none">
+                      — {r.realmName}
+                    </span>
                   </div>
-
-                  {/* Big, spacious architectural restoration progress bar */}
-                  <div className="space-y-1">
-                    <div className="w-full h-4 bg-pink-100 rounded-full overflow-hidden border-2 border-pink-200 relative shadow-inner">
-                      <div
-                        className="h-full rounded-full transition-all duration-700 relative"
-                        style={{
-                          width: `${levelPercent}%`,
-                          backgroundColor: r.color,
-                        }}
-                      >
-                        <div className="absolute inset-0 bg-white/20 animate-pulse" />
-                      </div>
-                    </div>
-                    <div className="flex justify-between text-[10px] font-pixel text-slate-500 px-1 font-bold">
-                      <span>Restoration Progress: {levelPercent}%</span>
-                      <span>Tier {Math.min(5, Math.floor(r.level / 4) + 1)} Architectural Stage</span>
-                    </div>
+                  <div className="flex items-center gap-2 font-mono text-[11px] font-bold">
+                    <span className="text-pink-700 dark:text-amber-300 bg-pink-100/80 dark:bg-slate-700 px-2 py-0.5 rounded border border-pink-200 dark:border-slate-600">
+                      Lv.{r.level} • {r.elements} monuments
+                    </span>
                   </div>
                 </div>
-              );
-            })}
+                <div className="w-full h-2.5 bg-pink-100 dark:bg-slate-700 rounded-full overflow-hidden border border-pink-200 dark:border-slate-600">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{
+                      width: `${Math.min(100, (r.level / 20) * 100)}%`,
+                      backgroundColor: r.color,
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         </AncientJournalPanel>
       </div>
