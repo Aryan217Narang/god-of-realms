@@ -46,9 +46,12 @@ export default function App() {
   useEffect(() => {
     const root = document.documentElement;
     root.setAttribute('data-theme', state.settings.theme);
-    root.classList.remove('theme-pink', 'theme-dark', 'theme-white');
+    root.classList.remove('theme-pink', 'theme-dark', 'theme-white', 'dark');
     root.classList.add(`theme-${state.settings.theme}`);
-    document.body.className = `theme-${state.settings.theme}`;
+    if (state.settings.theme === 'dark') {
+      root.classList.add('dark');
+    }
+    document.body.className = `theme-${state.settings.theme}${state.settings.theme === 'dark' ? ' dark' : ''}`;
   }, [state.settings.theme]);
 
   const addToast = useCallback((message: string) => {
