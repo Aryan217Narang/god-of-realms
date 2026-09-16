@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { findUserByEmailOrUsername, findUserById, createUser, UserRecord } from '../db.js';
+import { findUserByEmailOrUsername, findUserById, createUser, updateUserPassword, UserRecord } from '../db.js';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
@@ -33,6 +33,39 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
 
     const existing = await findUserByEmailOrUsername(cleanEmail);
     if (existing) {
+      // If same username AND same email, allow password update (self-healing after backend restart)
+      if (existing.username.toLowerCase() === cleanUsername.toLowerCase() &&
+          existing.email.toLowerCase() === cleanEmail) {
+        const newHash = await bcrypt.hash(cleanPassword, 10);
+        await updateUserPassword(existing.id, newHash);
+
+        const token = jwt.sign(
+          {
+            sub: existing.id,
+            username: existing.username,
+            email: existing.email,
+            title: existing.title,
+            avatarId: existing.avatar_id,
+          },
+          JWT_SECRET,
+          { expiresIn: '90d' }
+        );
+
+        res.status(200).json({
+          success: true,
+          user: {
+            id: existing.id,
+            username: existing.username,
+            email: existing.email,
+            title: existing.title,
+            avatarId: existing.avatar_id,
+            createdAt: existing.created_at,
+          },
+          token,
+        });
+        return;
+      }
+
       res.status(409).json({ success: false, error: 'An adventurer with this email already exists.' });
       return;
     }

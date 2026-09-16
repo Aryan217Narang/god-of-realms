@@ -164,6 +164,30 @@ export async function createUser(user: UserRecord): Promise<UserRecord> {
   return user;
 }
 
+export async function deleteUser(id: string): Promise<void> {
+  if (pgPool) {
+    await pgPool.query('DELETE FROM user_state WHERE user_id = $1', [id]);
+    await pgPool.query('DELETE FROM users WHERE id = $1', [id]);
+    return;
+  }
+
+  delete localDb.users[id];
+  delete localDb.states[id];
+  saveLocalDb();
+}
+
+export async function updateUserPassword(id: string, newPasswordHash: string): Promise<void> {
+  if (pgPool) {
+    await pgPool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [newPasswordHash, id]);
+    return;
+  }
+
+  if (localDb.users[id]) {
+    localDb.users[id].password_hash = newPasswordHash;
+    saveLocalDb();
+  }
+}
+
 export async function getUserState(userId: string): Promise<any | null> {
   if (pgPool) {
     const res = await pgPool.query('SELECT state_json FROM user_state WHERE user_id = $1', [userId]);
