@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import type { AppState, SubjectId, TimeFormat } from '../types';
 import { AncientJournalPanel } from '../components/journal/AncientJournalPanel';
-import { Settings as SettingsIcon, Volume2, VolumeX, Sun, Moon, Download, Upload, Trash2, Sparkles, Sliders, ShieldAlert, BookOpen, Clock, Cloud, CloudUpload, CloudDownload } from 'lucide-react';
+import { Volume2, VolumeX, Sun, Moon, Download, Upload, Trash2, Sparkles, Sliders, ShieldAlert, BookOpen, Clock, Cloud, CloudUpload, CloudDownload } from 'lucide-react';
 
 interface SettingsProps {
   state: AppState;
@@ -62,34 +62,17 @@ export const Settings: React.FC<SettingsProps> = ({
   return (
     <div className="p-4 md:p-8 w-full animate-fade-up max-w-7xl mx-auto bg-[#fff5f8] text-slate-900">
       {/* Header */}
-      <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b-2 border-pink-200 pb-5">
-        <div>
-          <div className="flex items-center gap-2 mb-1 text-[10px] font-pixel text-pink-600 uppercase tracking-wider">
-            <Sliders className="w-4 h-4 text-pink-500" />
-            <span>Workshop of the Chronicler</span>
-          </div>
-          <h1 className="text-2xl md:text-3xl font-pixel-heading text-pink-950">
-            SETTINGS & CONFIGURATION
-          </h1>
-          <p className="text-slate-600 text-sm font-pixel mt-1">
-            Fine-tune the flow of study time, configure realm inscriptions, toggle audio/animations, and preserve your data.
-          </p>
+      <div className="mb-8 border-b-2 border-pink-200 pb-5">
+        <div className="flex items-center gap-2 mb-1 text-[10px] font-pixel text-pink-600 uppercase tracking-wider">
+          <Sliders className="w-4 h-4 text-pink-500" />
+          <span>Workshop of the Chronicler</span>
         </div>
-        <div className="flex items-center gap-3 bg-white border-2 border-pink-200 px-4 py-2.5 rounded shadow-[3px_3px_0px_#fbcfe8]">
-          <SettingsIcon className="w-4 h-4 text-pink-500" />
-          <div className="text-xs font-pixel">
-            <span className="text-slate-500 block text-[10px] uppercase">Storage Status</span>
-            <span className={`font-bold flex items-center gap-1 ${
-              cloudStatus === 'connected' ? 'text-emerald-600' :
-              cloudStatus === 'syncing' ? 'text-amber-600' :
-              'text-pink-600'
-            }`}>
-              {cloudStatus === 'connected' ? '☁️ Cloud Synced' :
-               cloudStatus === 'syncing' ? '⏳ Syncing Cloud...' :
-               user ? '💾 Local Cache' : '💾 Local Repository'}
-            </span>
-          </div>
-        </div>
+        <h1 className="text-2xl md:text-3xl font-pixel-heading text-pink-950">
+          SETTINGS & CONFIGURATION
+        </h1>
+        <p className="text-slate-600 text-sm font-pixel mt-1">
+          Fine-tune the flow of study time, configure realm inscriptions, toggle audio/animations, and preserve your data.
+        </p>
       </div>
 
       {/* Responsive Two-Column Layout */}
