@@ -278,7 +278,7 @@ export function useStore(userId?: string | null) {
     }
   }, [userId]);
 
-  // Cloud sync on login / initial mount
+  // Cloud sync on login / initial mount / reconnect
   useEffect(() => {
     if (!userId) {
       setCloudStatus('local');
@@ -323,10 +323,39 @@ export function useStore(userId?: string | null) {
     }
 
     syncWithCloud();
+
+    // 🌐 Automatically re-sync the exact moment internet comes back
+    const handleOnline = () => {
+      console.log('🌐 Internet reconnected! Automatically syncing with cloud...');
+      syncWithCloud();
+    };
+
+    // 📱 Automatically refresh data when user unlocks phone or switches back to tab
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        syncWithCloud();
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('focus', handleOnline);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    // 🔄 Auto-retry every 20 seconds if offline
+    const retryInterval = setInterval(() => {
+      if (cloudStatus === 'offline' && navigator.onLine) {
+        syncWithCloud();
+      }
+    }, 20000);
+
     return () => {
       active = false;
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('focus', handleOnline);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      clearInterval(retryInterval);
     };
-  }, [userId, mergeLocalAndCloud]);
+  }, [userId, mergeLocalAndCloud, cloudStatus]);
 
   // Persist locally and debounced sync to cloud
   const syncTimeoutRef = useRef<any>(null);
