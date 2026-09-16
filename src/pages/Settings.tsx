@@ -1,12 +1,12 @@
 import React, { useState, useRef } from 'react';
 import type { AppState, SubjectId, TimeFormat } from '../types';
 import { AncientJournalPanel } from '../components/journal/AncientJournalPanel';
-import { Volume2, VolumeX, Sun, Moon, Download, Upload, Trash2, Sparkles, Sliders, ShieldAlert, BookOpen, Clock, Cloud, CloudUpload, CloudDownload } from 'lucide-react';
+import { Volume2, VolumeX, Sun, Moon, Download, Upload, Sparkles, Sliders, BookOpen, Clock, Cloud, CloudUpload, CloudDownload } from 'lucide-react';
 
 interface SettingsProps {
   state: AppState;
   onUpdateSettings: (updates: Partial<AppState['settings']>) => void;
-  onResetData: () => void;
+  onResetData?: () => void;
   onExportData: () => string;
   onImportData: (json: string) => boolean;
   cloudStatus?: 'connected' | 'syncing' | 'offline' | 'local';
@@ -20,7 +20,7 @@ const SUBJECT_IDS: SubjectId[] = ['daa', 'os', 'nosql', 'hda_cognitive', 'gv'];
 export const Settings: React.FC<SettingsProps> = ({
   state,
   onUpdateSettings,
-  onResetData,
+  onResetData: _onResetData,
   onExportData,
   onImportData,
   cloudStatus = 'local',
@@ -28,7 +28,6 @@ export const Settings: React.FC<SettingsProps> = ({
   onPullFromCloud,
   user,
 }) => {
-  const [confirmReset, setConfirmReset] = useState(false);
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -483,48 +482,6 @@ export const Settings: React.FC<SettingsProps> = ({
               </div>
             )}
           </AncientJournalPanel>
-
-          {/* Danger Zone: Data Reset */}
-          <div className="p-4 bg-red-50 border-2 border-red-300 rounded-lg relative overflow-hidden shadow-[3px_3px_0px_#fecdd3]">
-            <div className="flex items-center gap-2 text-red-700 font-pixel-heading text-xs mb-2">
-              <ShieldAlert className="w-4 h-4 text-red-600" />
-              <span>DANGER ZONE: RESET DATA</span>
-            </div>
-
-            {!confirmReset ? (
-              <div>
-                <p className="text-slate-600 text-xs font-pixel mb-3 leading-relaxed">
-                  Reset all study logs, return all five realms back to level 1, and wipe stored sessions.
-                </p>
-                <button
-                  onClick={() => setConfirmReset(true)}
-                  className="pixel-btn bg-red-100 border-red-400 text-red-700 hover:bg-red-200 py-2 text-xs flex items-center gap-1.5 font-bold"
-                >
-                  <Trash2 className="w-3.5 h-3.5" /> Reset Study Data
-                </button>
-              </div>
-            ) : (
-              <div className="p-3 bg-red-100 border border-red-400 rounded">
-                <p className="text-red-800 font-pixel text-xs mb-3 font-bold">
-                  ⚠️ Are you sure? This cannot be undone.
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => { onResetData(); setConfirmReset(false); }}
-                    className="pixel-btn bg-red-600 border-red-700 text-white hover:bg-red-700 py-1.5 text-xs flex items-center gap-1"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" /> Yes, Wipe Everything
-                  </button>
-                  <button
-                    onClick={() => setConfirmReset(false)}
-                    className="pixel-btn pixel-btn-parchment py-1.5 text-xs"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>
