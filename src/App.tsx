@@ -28,6 +28,9 @@ export default function App() {
 
   const {
     state,
+    cloudStatus,
+    pushToCloud,
+    pullFromCloud,
     startTimer,
     pauseTimer,
     resumeTimer,
@@ -137,6 +140,10 @@ export default function App() {
             onResetData={resetAllData}
             onExportData={exportData}
             onImportData={importData}
+            cloudStatus={cloudStatus}
+            onPushToCloud={pushToCloud}
+            onPullFromCloud={pullFromCloud}
+            user={auth.user}
           />
         );
       case 'realm-detail':

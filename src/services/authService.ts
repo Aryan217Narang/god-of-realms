@@ -6,6 +6,7 @@ import type {
   AuthResponse
 } from '../types/auth';
 import { signJwt, verifyJwt } from './jwt';
+import { apiFetch } from './apiClient';
 
 const USERS_STORAGE_KEY = 'god_of_realms_users_v1';
 const TOKEN_STORAGE_KEY = 'god_of_realms_jwt';
@@ -186,6 +187,39 @@ export async function seedDemoAccountIfNeeded(): Promise<void> {
  * Register a new Adventurer account and issue a signed JWT
  */
 export async function registerUser(credentials: RegisterCredentials): Promise<AuthResponse> {
+  // 1. Attempt registration via backend API
+  try {
+    const apiRes = await apiFetch('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+
+    if (apiRes.success && apiRes.user && apiRes.token) {
+      setStoredToken(apiRes.token);
+      const users = loadUsers();
+      users[apiRes.user.id] = {
+        id: apiRes.user.id,
+        username: apiRes.user.username,
+        email: apiRes.user.email,
+        title: apiRes.user.title,
+        avatarId: apiRes.user.avatarId,
+        createdAt: apiRes.user.createdAt,
+        passwordHash: '',
+        salt: '',
+      };
+      saveUsers(users);
+      return { success: true, user: apiRes.user, token: apiRes.token };
+    }
+
+    // If server sent an explicit error message (e.g. duplicate username/email)
+    if (apiRes.error && !apiRes.error.includes('Network error') && !apiRes.error.includes('unreachable')) {
+      return { success: false, error: apiRes.error };
+    }
+  } catch {
+    // Backend offline, proceed to local registration
+  }
+
+  // 2. Offline / Local fallback registration
   try {
     const users = loadUsers();
     const cleanUsername = credentials.username.trim();
@@ -203,7 +237,6 @@ export async function registerUser(credentials: RegisterCredentials): Promise<Au
       return { success: false, error: 'Password must be at least 6 characters long.' };
     }
 
-    // Check existing
     const existing = Object.values(users).find(
       u => u.email.toLowerCase() === cleanEmail || u.username.toLowerCase() === cleanUsername.toLowerCase()
     );
@@ -229,7 +262,6 @@ export async function registerUser(credentials: RegisterCredentials): Promise<Au
     users[id] = newUser;
     saveUsers(users);
 
-    // Sign JWT
     const token = await signJwt({
       sub: newUser.id,
       username: newUser.username,
@@ -259,8 +291,39 @@ export async function registerUser(credentials: RegisterCredentials): Promise<Au
  * Log in an existing Adventurer and issue a fresh signed JWT
  */
 export async function loginUser(credentials: LoginCredentials): Promise<AuthResponse> {
+  // 1. Attempt login via backend API
   try {
-    // Ensure demo user exists
+    const apiRes = await apiFetch('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+
+    if (apiRes.success && apiRes.user && apiRes.token) {
+      setStoredToken(apiRes.token);
+      const users = loadUsers();
+      users[apiRes.user.id] = {
+        id: apiRes.user.id,
+        username: apiRes.user.username,
+        email: apiRes.user.email,
+        title: apiRes.user.title,
+        avatarId: apiRes.user.avatarId,
+        createdAt: apiRes.user.createdAt,
+        passwordHash: '',
+        salt: '',
+      };
+      saveUsers(users);
+      return { success: true, user: apiRes.user, token: apiRes.token };
+    }
+
+    if (apiRes.error && !apiRes.error.includes('Network error') && !apiRes.error.includes('unreachable')) {
+      return { success: false, error: apiRes.error };
+    }
+  } catch {
+    // Backend offline, proceed to local login
+  }
+
+  // 2. Offline / Local fallback login
+  try {
     await seedDemoAccountIfNeeded();
 
     const users = loadUsers();
@@ -279,7 +342,6 @@ export async function loginUser(credentials: LoginCredentials): Promise<AuthResp
       return { success: false, error: 'Invalid password. Check your mystical phrase.' };
     }
 
-    // Sign JWT
     const token = await signJwt({
       sub: account.id,
       username: account.username,
@@ -306,12 +368,23 @@ export async function loginUser(credentials: LoginCredentials): Promise<AuthResp
 }
 
 /**
- * Validate active session from token
+ * Validate active session from token (verifying with backend if available)
  */
 export async function verifyCurrentSession(): Promise<{ user: User | null; token: string | null }> {
   const token = getStoredToken();
   if (!token) return { user: null, token: null };
 
+  // 1. Check with backend
+  try {
+    const meRes = await apiFetch('/api/auth/me');
+    if (meRes.success && meRes.user) {
+      return { user: meRes.user, token };
+    }
+  } catch {
+    // Network offline, fall back to local token decode
+  }
+
+  // 2. Fallback to local JWT verification
   const result = await verifyJwt(token);
   if (!result.valid || !result.payload) {
     clearStoredToken();
@@ -321,8 +394,6 @@ export async function verifyCurrentSession(): Promise<{ user: User | null; token
   const users = loadUsers();
   const account = users[result.payload.sub];
   if (!account) {
-    // User was deleted or payload payload doesn't exist locally
-    // Still use payload info
     return {
       user: {
         id: result.payload.sub,

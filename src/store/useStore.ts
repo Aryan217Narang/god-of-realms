@@ -5,6 +5,9 @@ import {
   getUnlockedElements, calculateStreak, checkAchievements,
   getSubjectMinutesForPeriod, todayDateString,
 } from '../utils/gameLogic';
+import { apiFetch } from '../services/apiClient';
+
+export type CloudStatus = 'connected' | 'syncing' | 'offline' | 'local';
 
 function getStorageKey(userId?: string | null): string {
   return userId ? `god_of_realms_user_${userId}` : 'god_of_realms_v1';
@@ -238,6 +241,33 @@ export function useStore(userId?: string | null) {
   const [state, setState] = useState<AppState>(() => loadState(userId));
   const stateRef = useRef(state);
   stateRef.current = state;
+  const [cloudStatus, setCloudStatus] = useState<CloudStatus>('local');
+
+  // Helper to merge local and cloud state safely without losing sessions
+  const mergeLocalAndCloud = useCallback((local: AppState, cloud: AppState): AppState => {
+    const localSessions = local.sessions || [];
+    const cloudSessions = cloud.sessions || [];
+    const map = new Map<string, StudySession>();
+    for (const s of cloudSessions) {
+      if (s && s.id) map.set(s.id, s);
+    }
+    for (const s of localSessions) {
+      if (s && s.id) map.set(s.id, s);
+    }
+    const mergedSessions = Array.from(map.values()).sort(
+      (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    );
+
+    const merged: AppState = {
+      ...local,
+      ...cloud,
+      sessions: mergedSessions,
+      subjects: { ...local.subjects, ...(cloud.subjects || {}) },
+      settings: { ...local.settings, ...(cloud.settings || {}) },
+      achievements: cloud.achievements?.length ? cloud.achievements : local.achievements,
+    };
+    return sanitizeSessionsAndRecalculate(merged);
+  }, []);
 
   // Sync state when active adventurer user changes
   const prevUserIdRef = useRef(userId);
@@ -248,9 +278,87 @@ export function useStore(userId?: string | null) {
     }
   }, [userId]);
 
-  // Persist on change
+  // Cloud sync on login / initial mount
+  useEffect(() => {
+    if (!userId) {
+      setCloudStatus('local');
+      return;
+    }
+
+    let active = true;
+
+    async function syncWithCloud() {
+      setCloudStatus('syncing');
+      try {
+        const res = await apiFetch('/api/state');
+        if (!active) return;
+
+        if (res.success) {
+          const cloudState = res.state;
+          const currentLocal = stateRef.current;
+          const localHasSessions = (currentLocal.sessions || []).length > 0;
+          const cloudHasSessions = cloudState && Array.isArray(cloudState.sessions) && cloudState.sessions.length > 0;
+
+          if (cloudHasSessions) {
+            const merged = mergeLocalAndCloud(currentLocal, cloudState);
+            setState(merged);
+            saveState(merged, userId);
+            setCloudStatus('connected');
+          } else if (localHasSessions) {
+            console.log('☁️ Uplinking existing local study data to cloud database...');
+            await apiFetch('/api/state/migrate', {
+              method: 'POST',
+              body: JSON.stringify({ localState: currentLocal }),
+            });
+            setCloudStatus('connected');
+          } else {
+            setCloudStatus('connected');
+          }
+        } else {
+          setCloudStatus('offline');
+        }
+      } catch {
+        if (active) setCloudStatus('offline');
+      }
+    }
+
+    syncWithCloud();
+    return () => {
+      active = false;
+    };
+  }, [userId, mergeLocalAndCloud]);
+
+  // Persist locally and debounced sync to cloud
+  const syncTimeoutRef = useRef<any>(null);
   useEffect(() => {
     saveState(state, userId);
+
+    if (!userId) return;
+
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+
+    syncTimeoutRef.current = setTimeout(async () => {
+      try {
+        setCloudStatus('syncing');
+        const res = await apiFetch('/api/state', {
+          method: 'PUT',
+          body: JSON.stringify({ state }),
+        });
+        if (res.success) {
+          setCloudStatus('connected');
+        } else {
+          setCloudStatus('offline');
+        }
+      } catch {
+        setCloudStatus('offline');
+      }
+    }, 2500);
+
+    return () => {
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    };
   }, [state, userId]);
 
   // Timer tick
@@ -484,9 +592,53 @@ export function useStore(userId?: string | null) {
     setState(prev => sanitizeSessionsAndRecalculate(prev));
   }, []);
 
+  // ---- Manual Cloud Actions ----
+  const pushToCloud = useCallback(async (): Promise<boolean> => {
+    if (!userId) return false;
+    setCloudStatus('syncing');
+    try {
+      const res = await apiFetch('/api/state/migrate', {
+        method: 'POST',
+        body: JSON.stringify({ localState: stateRef.current }),
+      });
+      if (res.success) {
+        setCloudStatus('connected');
+        return true;
+      }
+      setCloudStatus('offline');
+      return false;
+    } catch {
+      setCloudStatus('offline');
+      return false;
+    }
+  }, [userId]);
+
+  const pullFromCloud = useCallback(async (): Promise<boolean> => {
+    if (!userId) return false;
+    setCloudStatus('syncing');
+    try {
+      const res = await apiFetch('/api/state');
+      if (res.success && res.state) {
+        const merged = mergeLocalAndCloud(stateRef.current, res.state);
+        setState(merged);
+        saveState(merged, userId);
+        setCloudStatus('connected');
+        return true;
+      }
+      setCloudStatus('offline');
+      return false;
+    } catch {
+      setCloudStatus('offline');
+      return false;
+    }
+  }, [userId, mergeLocalAndCloud]);
+
   return {
     state,
     setState,
+    cloudStatus,
+    pushToCloud,
+    pullFromCloud,
     startTimer,
     pauseTimer,
     resumeTimer,

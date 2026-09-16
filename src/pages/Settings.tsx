@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import type { AppState, SubjectId, TimeFormat } from '../types';
 import { AncientJournalPanel } from '../components/journal/AncientJournalPanel';
-import { Settings as SettingsIcon, Volume2, VolumeX, Sun, Moon, Download, Upload, Trash2, Sparkles, Sliders, ShieldAlert, BookOpen, Clock } from 'lucide-react';
+import { Settings as SettingsIcon, Volume2, VolumeX, Sun, Moon, Download, Upload, Trash2, Sparkles, Sliders, ShieldAlert, BookOpen, Clock, Cloud, CloudUpload, CloudDownload } from 'lucide-react';
 
 interface SettingsProps {
   state: AppState;
@@ -9,13 +9,28 @@ interface SettingsProps {
   onResetData: () => void;
   onExportData: () => string;
   onImportData: (json: string) => boolean;
+  cloudStatus?: 'connected' | 'syncing' | 'offline' | 'local';
+  onPushToCloud?: () => Promise<boolean>;
+  onPullFromCloud?: () => Promise<boolean>;
+  user?: { id: string; username: string; email: string } | null;
 }
 
 const SUBJECT_IDS: SubjectId[] = ['daa', 'os', 'nosql', 'hda_cognitive', 'gv'];
 
-export const Settings: React.FC<SettingsProps> = ({ state, onUpdateSettings, onResetData, onExportData, onImportData }) => {
+export const Settings: React.FC<SettingsProps> = ({
+  state,
+  onUpdateSettings,
+  onResetData,
+  onExportData,
+  onImportData,
+  cloudStatus = 'local',
+  onPushToCloud,
+  onPullFromCloud,
+  user,
+}) => {
   const [confirmReset, setConfirmReset] = useState(false);
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const s = state.settings;
@@ -64,7 +79,15 @@ export const Settings: React.FC<SettingsProps> = ({ state, onUpdateSettings, onR
           <SettingsIcon className="w-4 h-4 text-pink-500" />
           <div className="text-xs font-pixel">
             <span className="text-slate-500 block text-[10px] uppercase">Storage Status</span>
-            <span className="text-pink-600 font-bold">Local Repository Active</span>
+            <span className={`font-bold flex items-center gap-1 ${
+              cloudStatus === 'connected' ? 'text-emerald-600' :
+              cloudStatus === 'syncing' ? 'text-amber-600' :
+              'text-pink-600'
+            }`}>
+              {cloudStatus === 'connected' ? '☁️ Cloud Synced' :
+               cloudStatus === 'syncing' ? '⏳ Syncing Cloud...' :
+               user ? '💾 Local Cache' : '💾 Local Repository'}
+            </span>
           </div>
         </div>
       </div>
@@ -377,8 +400,70 @@ export const Settings: React.FC<SettingsProps> = ({ state, onUpdateSettings, onR
               </p>
             </div>
 
+            {/* Cloud Sync & Cross-Device Section */}
+            {user ? (
+              <div className="mb-5 p-3.5 bg-gradient-to-r from-pink-50 to-rose-50 border-2 border-pink-300 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Cloud className="w-4 h-4 text-pink-600" />
+                    <span className="text-xs font-pixel font-bold text-pink-950">Multi-Device Cloud Sync</span>
+                  </div>
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
+                    cloudStatus === 'connected' ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' :
+                    cloudStatus === 'syncing' ? 'bg-amber-100 text-amber-700 border border-amber-300 animate-pulse' :
+                    'bg-slate-100 text-slate-600 border border-slate-300'
+                  }`}>
+                    {cloudStatus === 'connected' ? '● Cloud Connected' :
+                     cloudStatus === 'syncing' ? '◌ Syncing...' :
+                     '○ Offline Mode'}
+                  </span>
+                </div>
+                <p className="text-[11px] font-pixel text-slate-600 mb-3 leading-relaxed">
+                  Active Account: <strong className="text-pink-700">{user.username}</strong> ({user.email}). All your study sessions, realm monuments, and levels automatically synchronize across your phone, laptop, and tablet.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={async () => {
+                      if (onPushToCloud) {
+                        const ok = await onPushToCloud();
+                        setSyncMsg(ok ? '✓ Local study sessions successfully uplinked to cloud database!' : '✗ Cloud push failed. Check connection.');
+                        setTimeout(() => setSyncMsg(null), 4000);
+                      }
+                    }}
+                    className="pixel-btn pixel-btn-pink py-1.5 px-3 text-[11px] flex items-center gap-1.5 cursor-pointer"
+                    title="Force upload all local study data from this device to cloud"
+                  >
+                    <CloudUpload className="w-3.5 h-3.5" /> Push to Cloud
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (onPullFromCloud) {
+                        const ok = await onPullFromCloud();
+                        setSyncMsg(ok ? '✓ Latest cloud data loaded onto this device!' : '✗ Cloud pull failed. Check connection.');
+                        setTimeout(() => setSyncMsg(null), 4000);
+                      }
+                    }}
+                    className="pixel-btn pixel-btn-parchment py-1.5 px-3 text-[11px] flex items-center gap-1.5 cursor-pointer"
+                    title="Force refresh device with latest cloud data"
+                  >
+                    <CloudDownload className="w-3.5 h-3.5" /> Pull from Cloud
+                  </button>
+                </div>
+                {syncMsg && (
+                  <div className="mt-2 text-[11px] font-pixel font-bold text-pink-700 animate-fade-in">
+                    {syncMsg}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="mb-4 p-3 bg-pink-50/70 border border-pink-200 rounded text-xs font-pixel text-slate-600 flex items-center gap-2">
+                <Cloud className="w-4 h-4 text-pink-400 flex-shrink-0" />
+                <span>Log in to an Adventurer Account to enable automatic real-time cloud sync across devices.</span>
+              </div>
+            )}
+
             <p className="text-xs font-pixel text-slate-600 mb-4 leading-relaxed">
-              All progress, relic awakenings, and session timestamps reside safely within your browser's persistent storage. You can export or import your data JSON backup anytime.
+              All progress, relic awakenings, and session timestamps also reside safely within your browser's persistent offline storage. You can export or import your data JSON backup anytime.
             </p>
 
             <div className="flex flex-wrap gap-3">
