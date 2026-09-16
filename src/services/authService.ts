@@ -187,6 +187,9 @@ export async function seedDemoAccountIfNeeded(): Promise<void> {
  * Register a new Adventurer account and issue a signed JWT
  */
 export async function registerUser(credentials: RegisterCredentials): Promise<AuthResponse> {
+  const salt = generateSalt();
+  const passwordHash = await hashPassword(credentials.password, salt);
+
   // 1. Attempt registration via backend API
   try {
     const apiRes = await apiFetch('/api/auth/register', {
@@ -204,8 +207,8 @@ export async function registerUser(credentials: RegisterCredentials): Promise<Au
         title: apiRes.user.title,
         avatarId: apiRes.user.avatarId,
         createdAt: apiRes.user.createdAt,
-        passwordHash: '',
-        salt: '',
+        passwordHash,
+        salt,
       };
       saveUsers(users);
       return { success: true, user: apiRes.user, token: apiRes.token };
@@ -316,6 +319,34 @@ export async function loginUser(credentials: LoginCredentials): Promise<AuthResp
     }
 
     if (apiRes.error && !apiRes.error.includes('Network error') && !apiRes.error.includes('unreachable')) {
+      // If backend reports account not found, check if we have a local account with matching password to auto-heal
+      if (apiRes.error.toLowerCase().includes('not found')) {
+        const users = loadUsers();
+        const identifier = credentials.emailOrUsername.trim().toLowerCase();
+        const localAcc = Object.values(users).find(
+          u => u.email.toLowerCase() === identifier || u.username.toLowerCase() === identifier
+        );
+        if (localAcc && localAcc.salt && localAcc.passwordHash) {
+          const testHash = await hashPassword(credentials.password, localAcc.salt);
+          if (testHash === localAcc.passwordHash) {
+            // Auto-heal: re-register account on the fresh backend container!
+            const regRes = await apiFetch('/api/auth/register', {
+              method: 'POST',
+              body: JSON.stringify({
+                username: localAcc.username,
+                email: localAcc.email,
+                password: credentials.password,
+                avatarId: localAcc.avatarId,
+              }),
+            });
+            if (regRes.success && regRes.user && regRes.token) {
+              setStoredToken(regRes.token);
+              return { success: true, user: regRes.user, token: regRes.token };
+            }
+          }
+        }
+      }
+
       return { success: false, error: apiRes.error };
     }
   } catch {
