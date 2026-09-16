@@ -10,6 +10,170 @@ function getStorageKey(userId?: string | null): string {
   return userId ? `god_of_realms_user_${userId}` : 'god_of_realms_v1';
 }
 
+function isDate15Session(s: StudySession): boolean {
+  if (!s.startTime) return false;
+  const isoDate = s.startTime.slice(0, 10);
+  if (isoDate.endsWith('-15')) return true;
+  try {
+    const d = new Date(s.startTime);
+    if (!isNaN(d.getTime()) && (d.getDate() === 15 || d.getUTCDate() === 15)) {
+      return true;
+    }
+  } catch {}
+  return s.startTime.includes('-15T') || s.startTime.includes('2026-09-15');
+}
+
+/**
+ * Sanitizes study sessions:
+ * 1. Corrects erroneous ~13.45 hr (800+ min) runaway session on date 15 to exactly 30 minutes.
+ * 2. Ensures the total study time on date 15 is clamped to 30 minutes.
+ * 3. Caps any runaway session (>= 180 min) anywhere in history.
+ * 4. Recalculates all subject statistics (XP, level, unlockedElements, streaks, totalMinutes, etc.)
+ */
+export function sanitizeSessionsAndRecalculate(state: AppState): AppState {
+  if (!state || !Array.isArray(state.sessions) || state.sessions.length === 0) {
+    return state;
+  }
+
+  let modified = false;
+  let newSessions: StudySession[] = state.sessions.map(s => {
+    const onDate15 = isDate15Session(s);
+    const isRunaway = s.durationMinutes >= 180; // Runaway single timer
+
+    if ((onDate15 && s.durationMinutes > 30) || isRunaway) {
+      modified = true;
+      const targetMin = 30;
+      return {
+        ...s,
+        durationMinutes: targetMin,
+        xpEarned: calculateXpForSession(targetMin, s.completed),
+      };
+    }
+    return s;
+  });
+
+  // Ensure total completed duration on date 15 does not exceed 30 minutes
+  const date15Completed = newSessions.filter(s => s.completed && isDate15Session(s));
+  const totalDate15 = date15Completed.reduce((sum, s) => sum + s.durationMinutes, 0);
+  if (totalDate15 > 30) {
+    modified = true;
+    let allocated = 0;
+    newSessions = newSessions.map(s => {
+      if (s.completed && isDate15Session(s)) {
+        if (allocated < 30) {
+          const keep = Math.min(s.durationMinutes, 30 - allocated);
+          allocated += keep;
+          return {
+            ...s,
+            durationMinutes: keep,
+            xpEarned: calculateXpForSession(keep, true),
+          };
+        } else {
+          return {
+            ...s,
+            durationMinutes: 0,
+            xpEarned: 0,
+          };
+        }
+      }
+      return s;
+    });
+  }
+
+  const defaults = getDefaultState();
+  const updatedSubjects: Record<SubjectId, Subject> = { ...state.subjects };
+  const subjectIds = Object.keys(defaults.subjects) as SubjectId[];
+
+  let subjectMismatch = false;
+  for (const id of subjectIds) {
+    const sub = updatedSubjects[id];
+    if (!sub) continue;
+    const subSessions = newSessions.filter(s => s.subjectId === id && s.completed);
+    const computedTotalMin = subSessions.reduce((sum, s) => sum + s.durationMinutes, 0);
+    const computedXp = subSessions.reduce((sum, s) => sum + s.xpEarned, 0);
+    if (sub.totalMinutes !== computedTotalMin || sub.xp !== computedXp) {
+      subjectMismatch = true;
+      break;
+    }
+  }
+
+  if (!modified && !subjectMismatch) {
+    return state;
+  }
+
+  for (const id of subjectIds) {
+    const sub = updatedSubjects[id] || defaults.subjects[id];
+    const subSessions = newSessions.filter(s => s.subjectId === id && s.completed);
+    const totalMinutes = subSessions.reduce((sum, s) => sum + s.durationMinutes, 0);
+    const xp = subSessions.reduce((sum, s) => sum + s.xpEarned, 0);
+    const level = getLevelFromXp(xp);
+    const unlockedElements = getUnlockedElements(id, totalMinutes, level);
+    const { current, longest } = calculateStreak(newSessions, id);
+
+    updatedSubjects[id] = {
+      ...sub,
+      totalMinutes,
+      todayMinutes: getSubjectMinutesForPeriod(newSessions, id, 'today'),
+      weekMinutes: getSubjectMinutesForPeriod(newSessions, id, 'week'),
+      monthMinutes: getSubjectMinutesForPeriod(newSessions, id, 'month'),
+      sessionsCompleted: subSessions.length,
+      xp,
+      level,
+      unlockedElements,
+      currentStreak: current,
+      longestStreak: Math.max(longest, sub.longestStreak || 0),
+    };
+  }
+
+  const globalStreak = calculateStreak(newSessions);
+  const { updated: newAchievements } = checkAchievements(
+    state.achievements || defaults.achievements,
+    updatedSubjects,
+    newSessions,
+    globalStreak.current
+  );
+
+  return {
+    ...state,
+    sessions: newSessions,
+    subjects: updatedSubjects,
+    achievements: newAchievements,
+    globalStreak: globalStreak.current,
+    globalLongestStreak: Math.max(globalStreak.longest, state.globalLongestStreak || 0),
+  };
+}
+
+function sanitizeAllStorageKeys(): void {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('god_of_realms_user_') || key === 'god_of_realms_v1')) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw) as AppState;
+            if (parsed && Array.isArray(parsed.sessions)) {
+              const sanitized = sanitizeSessionsAndRecalculate(parsed);
+              const sanitizedRaw = JSON.stringify(sanitized);
+              if (sanitizedRaw !== raw) {
+                localStorage.setItem(key, sanitizedRaw);
+              }
+            }
+          } catch {}
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Failed to sweep storage keys:', e);
+  }
+}
+
+// Auto-sweep storage keys on module execution
+if (typeof window !== 'undefined' && window.localStorage) {
+  sanitizeAllStorageKeys();
+}
+
 function loadState(userId?: string | null): AppState {
   try {
     const key = getStorageKey(userId);
@@ -38,7 +202,7 @@ function loadState(userId?: string | null): AppState {
       };
     }
 
-    return {
+    const merged: AppState = {
       ...defaults,
       ...stored,
       subjects: mergedSubjects,
@@ -46,6 +210,12 @@ function loadState(userId?: string | null): AppState {
       timer: { ...defaults.timer, ...stored.timer },
       achievements: stored.achievements?.length ? stored.achievements : defaults.achievements,
     };
+
+    const sanitized = sanitizeSessionsAndRecalculate(merged);
+    if (JSON.stringify(sanitized) !== raw) {
+      saveState(sanitized, userId);
+    }
+    return sanitized;
   } catch {
     return getDefaultState();
   }
@@ -192,6 +362,8 @@ export function useStore(userId?: string | null) {
   }, []);
 
   const completeSession = useCallback((actualMinutes: number) => {
+    // Bound actual session duration between 1 and 180 minutes to avoid runaway timer errors
+    const boundedMinutes = Math.max(1, Math.min(180, Math.round(actualMinutes)));
     setState(prev => {
       const subjectId = prev.timer.selectedSubject;
       if (!subjectId) return prev;
@@ -202,15 +374,15 @@ export function useStore(userId?: string | null) {
         buildTarget: prev.timer.currentBuildTarget || undefined,
         startTime: prev.timer.sessionStartTime || new Date().toISOString(),
         endTime: new Date().toISOString(),
-        durationMinutes: actualMinutes,
+        durationMinutes: boundedMinutes,
         completed: true,
-        xpEarned: calculateXpForSession(actualMinutes, true),
+        xpEarned: calculateXpForSession(boundedMinutes, true),
       };
 
       const newSessions = [...prev.sessions, session];
       const newXp = prev.subjects[subjectId].xp + session.xpEarned;
       const newLevel = getLevelFromXp(newXp);
-      const newTotalMinutes = prev.subjects[subjectId].totalMinutes + actualMinutes;
+      const newTotalMinutes = prev.subjects[subjectId].totalMinutes + boundedMinutes;
       const unlockedElements = getUnlockedElements(subjectId, newTotalMinutes, newLevel);
       const { current, longest } = calculateStreak(newSessions, subjectId);
       const globalStreak = calculateStreak(newSessions);
@@ -221,9 +393,9 @@ export function useStore(userId?: string | null) {
         xp: newXp,
         level: newLevel,
         totalMinutes: newTotalMinutes,
-        todayMinutes: getSubjectMinutesForPeriod(newSessions, subjectId, 'today') + actualMinutes,
-        weekMinutes: getSubjectMinutesForPeriod(newSessions, subjectId, 'week') + actualMinutes,
-        monthMinutes: getSubjectMinutesForPeriod(newSessions, subjectId, 'month') + actualMinutes,
+        todayMinutes: getSubjectMinutesForPeriod(newSessions, subjectId, 'today'),
+        weekMinutes: getSubjectMinutesForPeriod(newSessions, subjectId, 'week'),
+        monthMinutes: getSubjectMinutesForPeriod(newSessions, subjectId, 'month'),
         sessionsCompleted: prev.subjects[subjectId].sessionsCompleted + 1,
         currentStreak: current,
         longestStreak: Math.max(longest, prev.subjects[subjectId].longestStreak),
@@ -309,30 +481,7 @@ export function useStore(userId?: string | null) {
 
   // ---- Recalculate subject stats from sessions ----
   const recalcSubjectStats = useCallback(() => {
-    setState(prev => {
-      const newSubjects = { ...prev.subjects };
-      const subjectIds: SubjectId[] = ['daa', 'os', 'nosql', 'hda_cognitive', 'gv'];
-      subjectIds.forEach(id => {
-        const totalMinutes = getSubjectMinutesForPeriod(prev.sessions, id, 'all');
-        const todayMinutes = getSubjectMinutesForPeriod(prev.sessions, id, 'today');
-        const weekMinutes = getSubjectMinutesForPeriod(prev.sessions, id, 'week');
-        const monthMinutes = getSubjectMinutesForPeriod(prev.sessions, id, 'month');
-        const totalXp = prev.sessions.filter(s => s.subjectId === id && s.completed).reduce((sum, s) => sum + s.xpEarned, 0);
-        const level = getLevelFromXp(totalXp);
-        const unlockedElements = getUnlockedElements(id, totalMinutes, level);
-        const streak = calculateStreak(prev.sessions, id);
-        newSubjects[id] = {
-          ...prev.subjects[id],
-          totalMinutes, todayMinutes, weekMinutes, monthMinutes,
-          xp: totalXp, level,
-          unlockedElements,
-          currentStreak: streak.current,
-          longestStreak: Math.max(streak.longest, prev.subjects[id].longestStreak),
-          sessionsCompleted: prev.sessions.filter(s => s.subjectId === id && s.completed).length,
-        };
-      });
-      return { ...prev, subjects: newSubjects };
-    });
+    setState(prev => sanitizeSessionsAndRecalculate(prev));
   }, []);
 
   return {

@@ -118,7 +118,10 @@ export const StudyTimer: React.FC<TimerProps> = ({
         soundManager.playTimerCompletionAlarm(5000);
 
         if (isStudyMode) {
-          const elapsed = Math.max(1, Math.floor(getElapsedMs() / 60000));
+          const targetMin = Math.max(1, Math.round(timer.targetDurationMs / 60000));
+          const rawElapsed = Math.max(1, Math.floor(getElapsedMs() / 60000));
+          // Cap elapsed to target session duration so runaway sleep/background timers cannot record 13+ hours
+          const elapsed = Math.min(targetMin, rawElapsed);
           const earned = elapsed + 25; // 1 XP per minute + 25 XP bonus
           setLastMinutes(elapsed);
           setLastXP(earned);
@@ -466,7 +469,10 @@ export const StudyTimer: React.FC<TimerProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        const elapsed = Math.floor(getElapsedMs() / 60000);
+                        const rawElapsed = Math.floor(getElapsedMs() / 60000);
+                        const targetMin = Math.max(1, Math.round(timer.targetDurationMs / 60000));
+                        // Cap manual complete to target duration or max 180 min to prevent runaway elapsed time
+                        const elapsed = Math.min(targetMin, Math.min(180, rawElapsed));
                         if (elapsed > 0) onComplete(elapsed);
                         else onReset();
                       }}
