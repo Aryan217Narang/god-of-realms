@@ -353,6 +353,8 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
             <ComposedChart
               data={dailyData}
               margin={{ top: 15, right: 15, bottom: 5, left: -15 }}
+              barSize={period === 30 ? 14 : 26}
+              maxBarSize={period === 30 ? 16 : 30}
               className="cursor-pointer"
               onClick={(e: any) => {
                 if (e && e.activePayload && e.activePayload.length > 0) {
@@ -383,7 +385,8 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
                 dataKey="total"
                 name={timeFormat.startsWith('hours') ? 'Study Time' : 'Minutes'}
                 radius={[4, 4, 0, 0]}
-                barSize={32}
+                barSize={period === 30 ? 14 : 26}
+                maxBarSize={period === 30 ? 16 : 30}
                 cursor="pointer"
                 onClick={(entry: any) => {
                   const payload = entry && (entry.payload || entry);
@@ -660,7 +663,12 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
           </div>
 
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={getDailyStudyData(sessions, 7)} margin={{ top: 10, right: 10, bottom: 5, left: -15 }}>
+            <BarChart
+              data={getDailyStudyData(sessions, 7)}
+              margin={{ top: 10, right: 10, bottom: 5, left: -15 }}
+              barSize={26}
+              maxBarSize={30}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#fce7f3" />
               <XAxis dataKey="label" tick={{ fill: '#db2777', fontSize: 10, fontFamily: 'Consolas, "Courier New", monospace' }} />
               <YAxis
@@ -670,7 +678,7 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
               <Tooltip content={<CustomTooltip />} />
               <Legend formatter={(v) => <span style={{ fontSize: 11, fontFamily: 'Consolas, "Courier New", monospace', color: '#9d174d' }}>{v}</span>} />
               {SUBJECT_IDS.map(id => (
-                <Bar key={id} dataKey={`bySubject.${id}`} name={LABELS[id]} stackId="a" fill={COLORS[id]} />
+                <Bar key={id} dataKey={`bySubject.${id}`} name={LABELS[id]} stackId="a" fill={COLORS[id]} barSize={26} maxBarSize={30} />
               ))}
             </BarChart>
           </ResponsiveContainer>

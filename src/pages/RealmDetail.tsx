@@ -297,12 +297,17 @@ export const RealmDetail: React.FC<RealmDetailProps> = ({ state, subjectId, onNa
             </div>
 
             <ResponsiveContainer width="100%" height={160}>
-              <BarChart data={dailyData} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
+              <BarChart
+                data={dailyData}
+                margin={{ top: 10, right: 10, bottom: 0, left: -20 }}
+                barSize={26}
+                maxBarSize={30}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="#fce7f3" />
                 <XAxis dataKey="label" tick={{ fill: '#db2777', fontSize: 10, fontFamily: 'Pixelify Sans, monospace' }} />
                 <YAxis tick={{ fill: '#db2777', fontSize: 10, fontFamily: 'Pixelify Sans, monospace' }} unit="m" />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="total" fill="#ec4899" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="total" fill="#ec4899" radius={[2, 2, 0, 0]} barSize={26} maxBarSize={30} />
               </BarChart>
             </ResponsiveContainer>
           </AncientJournalPanel>
