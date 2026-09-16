@@ -259,11 +259,11 @@ export function useStore(userId?: string | null) {
     );
 
     const merged: AppState = {
-      ...local,
       ...cloud,
+      ...local,
       sessions: mergedSessions,
-      subjects: { ...local.subjects, ...(cloud.subjects || {}) },
-      settings: { ...local.settings, ...(cloud.settings || {}) },
+      subjects: { ...cloud.subjects, ...(local.subjects || {}) },
+      settings: { ...(cloud.settings || {}), ...local.settings },
       achievements: cloud.achievements?.length ? cloud.achievements : local.achievements,
     };
     return sanitizeSessionsAndRecalculate(merged);
@@ -277,6 +277,9 @@ export function useStore(userId?: string | null) {
       setState(loadState(userId));
     }
   }, [userId]);
+
+  const cloudStatusRef = useRef<CloudStatus>(cloudStatus);
+  cloudStatusRef.current = cloudStatus;
 
   // Cloud sync on login / initial mount / reconnect
   useEffect(() => {
@@ -332,7 +335,7 @@ export function useStore(userId?: string | null) {
 
     // 📱 Automatically refresh data when user unlocks phone or switches back to tab
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && cloudStatusRef.current === 'offline') {
         syncWithCloud();
       }
     };
@@ -341,9 +344,9 @@ export function useStore(userId?: string | null) {
     window.addEventListener('focus', handleOnline);
     document.addEventListener('visibilitychange', handleVisibility);
 
-    // 🔄 Auto-retry every 20 seconds if offline
+    // 🔄 Auto-retry every 20 seconds only if offline
     const retryInterval = setInterval(() => {
-      if (cloudStatus === 'offline' && navigator.onLine) {
+      if (cloudStatusRef.current === 'offline' && navigator.onLine) {
         syncWithCloud();
       }
     }, 20000);
@@ -355,7 +358,7 @@ export function useStore(userId?: string | null) {
       document.removeEventListener('visibilitychange', handleVisibility);
       clearInterval(retryInterval);
     };
-  }, [userId, mergeLocalAndCloud, cloudStatus]);
+  }, [userId, mergeLocalAndCloud]);
 
   // Persist locally and debounced sync to cloud
   const syncTimeoutRef = useRef<any>(null);
@@ -373,7 +376,7 @@ export function useStore(userId?: string | null) {
         setCloudStatus('syncing');
         const res = await apiFetch('/api/state', {
           method: 'PUT',
-          body: JSON.stringify({ state }),
+          body: JSON.stringify({ state: stateRef.current }),
         });
         if (res.success) {
           setCloudStatus('connected');
@@ -383,7 +386,7 @@ export function useStore(userId?: string | null) {
       } catch {
         setCloudStatus('offline');
       }
-    }, 2500);
+    }, 1500);
 
     return () => {
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
