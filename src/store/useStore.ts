@@ -31,50 +31,8 @@ export function isDate18RunawaySession(s: StudySession): boolean {
   const isoDate = s.startTime.slice(0, 10);
   const is18 = isoDate.endsWith('-18') || s.startTime.includes('2026-09-18');
   if (!is18) return false;
-  // Purge any runaway session (>= 180 min or 320 min) on date 18, preserving valid sessions (like 65m)
-  return s.durationMinutes >= 180 || s.durationMinutes === 320;
-}
-
-/**
- * Ensures today (date 18) has the requested 1 session of 1.05 hr (65 min) for City Ruins (NoSQL)
- */
-export function ensureDate18Nosql105(state: AppState): AppState {
-  if (!state || !Array.isArray(state.sessions)) return state;
-
-  // Filter out any runaway sessions on date 18
-  let sessions = state.sessions.filter(s => !isDate18RunawaySession(s));
-
-  // Check if 65m NoSQL session already exists on date 18
-  const has65mSession = sessions.some(s => {
-    if (!s.startTime || !s.completed) return false;
-    const is18 = s.startTime.slice(0, 10).endsWith('-18') || s.startTime.includes('2026-09-18');
-    return is18 && s.subjectId === 'nosql' && s.durationMinutes === 65;
-  });
-
-  if (!has65mSession) {
-    // Remove any other nosql session on date 18
-    sessions = sessions.filter(s => {
-      if (!s.startTime) return true;
-      const is18 = s.startTime.slice(0, 10).endsWith('-18') || s.startTime.includes('2026-09-18');
-      return !(is18 && s.subjectId === 'nosql');
-    });
-
-    sessions.push({
-      id: 'sess_20260918_nosql_65',
-      subjectId: 'nosql',
-      buildTarget: 'Ancient Stone City Ruins Expedition',
-      startTime: '2026-09-18T13:30:00.000Z',
-      endTime: '2026-09-18T14:35:00.000Z',
-      durationMinutes: 65, // 65 min = 1.05h in app decimal hours format
-      completed: true,
-      xpEarned: calculateXpForSession(65, true),
-    });
-  }
-
-  return sanitizeSessionsAndRecalculate({
-    ...state,
-    sessions,
-  });
+  // Purge today's runaway ~5h 20m session on City Ruins (NoSQL) or any runaway >= 180m on date 18
+  return s.subjectId === 'nosql' || s.durationMinutes >= 180;
 }
 
 /**
@@ -218,7 +176,7 @@ function sanitizeAllStorageKeys(): void {
           try {
             const parsed = JSON.parse(raw) as AppState;
             if (parsed && Array.isArray(parsed.sessions)) {
-              const sanitized = ensureDate18Nosql105(parsed);
+              const sanitized = sanitizeSessionsAndRecalculate(parsed);
               const sanitizedRaw = JSON.stringify(sanitized);
               if (sanitizedRaw !== raw) {
                 localStorage.setItem(key, sanitizedRaw);
@@ -275,7 +233,7 @@ function loadState(userId?: string | null): AppState {
       achievements: stored.achievements?.length ? stored.achievements : defaults.achievements,
     };
 
-    const sanitized = ensureDate18Nosql105(merged);
+    const sanitized = sanitizeSessionsAndRecalculate(merged);
     if (JSON.stringify(sanitized) !== raw) {
       saveState(sanitized, userId);
     }
@@ -327,7 +285,7 @@ export function useStore(userId?: string | null) {
       settings: { ...(cloud.settings || {}), ...local.settings },
       achievements: cloud.achievements?.length ? cloud.achievements : local.achievements,
     };
-    return ensureDate18Nosql105(merged);
+    return sanitizeSessionsAndRecalculate(merged);
   }, []);
 
   // Sync state when active adventurer user changes
@@ -780,67 +738,12 @@ export function useStore(userId?: string | null) {
     return true;
   }, [userId]);
 
-  // ---- Add / Set Today's NoSQL Session to specific minutes (default 65 = 1.05h) ----
-  const addNosqlToday = useCallback(async (minutes = 65): Promise<boolean> => {
-    let sanitizedState: AppState | null = null;
-    setState(prev => {
-      // Remove any existing date 18 nosql session first
-      const remaining = (prev.sessions || []).filter(s => {
-        if (!s || !s.startTime) return true;
-        const is18 = s.startTime.slice(0, 10).endsWith('-18') || s.startTime.includes('2026-09-18');
-        return !(is18 && s.subjectId === 'nosql');
-      });
-
-      const newSession: StudySession = {
-        id: `sess_20260918_nosql_${minutes}`,
-        subjectId: 'nosql',
-        buildTarget: 'Ancient Stone City Ruins Expedition',
-        startTime: new Date(Date.now() - minutes * 60 * 1000).toISOString(),
-        endTime: new Date().toISOString(),
-        durationMinutes: minutes,
-        completed: true,
-        xpEarned: calculateXpForSession(minutes, true),
-      };
-
-      const next = sanitizeSessionsAndRecalculate({
-        ...prev,
-        sessions: [...remaining, newSession],
-      });
-
-      sanitizedState = next;
-      saveState(next, userId);
-      return next;
-    });
-
-    if (userId && sanitizedState) {
-      setCloudStatus('syncing');
-      try {
-        const res = await apiFetch('/api/state', {
-          method: 'PUT',
-          body: JSON.stringify({ state: sanitizedState, overwrite: true }),
-        });
-        if (res.success) {
-          setCloudStatus('connected');
-          return true;
-        } else {
-          setCloudStatus('offline');
-          return false;
-        }
-      } catch {
-        setCloudStatus('offline');
-        return false;
-      }
-    }
-    return true;
-  }, [userId]);
-
   // Expose on window for immediate DevTools console execution
   useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).clearTodaySessions = clearTodaySessions;
-      (window as any).addNosqlToday = addNosqlToday;
     }
-  }, [clearTodaySessions, addNosqlToday]);
+  }, [clearTodaySessions]);
 
   return {
     state,
@@ -849,7 +752,6 @@ export function useStore(userId?: string | null) {
     pushToCloud,
     pullFromCloud,
     clearTodaySessions,
-    addNosqlToday,
     startTimer,
     pauseTimer,
     resumeTimer,
