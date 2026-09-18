@@ -14,13 +14,13 @@ function mergeStateSessions(cloudState: any | null, incomingState: any): any {
   const incomingSessions = Array.isArray(incomingState.sessions) ? incomingState.sessions : [];
 
   const sessionMap = new Map<string, any>();
-  // Cloud sessions first
+  // Cloud sessions first (ignoring any runaway >= 180m sessions)
   for (const s of cloudSessions) {
-    if (s && s.id) sessionMap.set(s.id, s);
+    if (s && s.id && s.durationMinutes < 180) sessionMap.set(s.id, s);
   }
   // Incoming sessions (override or add)
   for (const s of incomingSessions) {
-    if (s && s.id) sessionMap.set(s.id, s);
+    if (s && s.id && s.durationMinutes < 180) sessionMap.set(s.id, s);
   }
 
   const mergedSessions = Array.from(sessionMap.values()).sort(
@@ -49,23 +49,60 @@ router.get('/', requireAuth, async (req: AuthenticatedRequest, res: Response): P
   }
 });
 
-// PUT /api/state - Sync state from client
+// PUT /api/state - Sync state from client (supports overwrite: true for deletions)
 router.put('/', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const incomingState = req.body?.state;
+    const isOverwrite = req.body?.overwrite === true || req.query?.force === 'true';
+
     if (!incomingState) {
       res.status(400).json({ success: false, error: 'No state payload provided.' });
       return;
     }
 
-    const currentState = await getUserState(req.userId!);
-    const mergedState = mergeStateSessions(currentState, incomingState);
+    let finalState: any;
+    if (isOverwrite) {
+      finalState = incomingState;
+    } else {
+      const currentState = await getUserState(req.userId!);
+      finalState = mergeStateSessions(currentState, incomingState);
+    }
 
-    await saveUserState(req.userId!, mergedState);
-    res.json({ success: true, state: mergedState, updatedAt: new Date().toISOString() });
+    await saveUserState(req.userId!, finalState);
+    res.json({ success: true, state: finalState, updatedAt: new Date().toISOString() });
   } catch (err: any) {
     console.error('Save state error:', err);
     res.status(500).json({ success: false, error: 'Failed to save user state.' });
+  }
+});
+
+// DELETE /api/state/sessions/today - Clear all sessions logged today from cloud database
+router.delete('/sessions/today', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const currentState = await getUserState(req.userId!);
+    if (!currentState) {
+      res.json({ success: true, message: 'No state found' });
+      return;
+    }
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const filteredSessions = (currentState.sessions || []).filter((s: any) => {
+      if (!s || !s.startTime) return false;
+      const iso = s.startTime.slice(0, 10);
+      return iso !== todayStr && !iso.endsWith('-18') && !s.startTime.includes('2026-09-18');
+    });
+
+    const updatedState = {
+      ...currentState,
+      sessions: filteredSessions,
+    };
+
+    await saveUserState(req.userId!, updatedState);
+    console.log(`🗑️ Cleared today's study sessions in cloud for user ${req.userId}.`);
+    res.json({ success: true, state: updatedState });
+  } catch (err: any) {
+    console.error('Delete today sessions error:', err);
+    res.status(500).json({ success: false, error: 'Failed to clear today sessions.' });
   }
 });
 

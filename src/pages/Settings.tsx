@@ -1,12 +1,13 @@
 import React, { useState, useRef } from 'react';
 import type { AppState, SubjectId, TimeFormat } from '../types';
 import { AncientJournalPanel } from '../components/journal/AncientJournalPanel';
-import { Volume2, VolumeX, Sun, Moon, Download, Upload, Sparkles, Sliders, BookOpen, Clock, Cloud, CloudUpload, CloudDownload } from 'lucide-react';
+import { Volume2, VolumeX, Sun, Moon, Download, Upload, Sparkles, Sliders, BookOpen, Clock, Cloud, CloudUpload, CloudDownload, Trash2 } from 'lucide-react';
 
 interface SettingsProps {
   state: AppState;
   onUpdateSettings: (updates: Partial<AppState['settings']>) => void;
   onResetData?: () => void;
+  onClearToday?: () => Promise<boolean> | void;
   onExportData: () => string;
   onImportData: (json: string) => boolean;
   cloudStatus?: 'connected' | 'syncing' | 'offline' | 'local';
@@ -21,6 +22,7 @@ export const Settings: React.FC<SettingsProps> = ({
   state,
   onUpdateSettings,
   onResetData: _onResetData,
+  onClearToday,
   onExportData,
   onImportData,
   cloudStatus = 'local',
@@ -430,6 +432,21 @@ export const Settings: React.FC<SettingsProps> = ({
                   >
                     <CloudDownload className="w-3.5 h-3.5" /> Pull from Cloud
                   </button>
+                  {onClearToday && (
+                    <button
+                      onClick={async () => {
+                        if (window.confirm("Are you sure you want to clear today's study sessions? This will wipe today's study time locally and remove it from the cloud database.")) {
+                          const ok = await onClearToday();
+                          setSyncMsg(ok !== false ? "✓ Today's study sessions cleared locally and from cloud!" : "✗ Cleared locally; cloud sync failed.");
+                          setTimeout(() => setSyncMsg(null), 4000);
+                        }
+                      }}
+                      className="pixel-btn bg-red-100 border-red-300 text-red-700 hover:bg-red-200 py-1.5 px-3 text-[11px] flex items-center gap-1.5 cursor-pointer font-bold"
+                      title="Clear all study sessions recorded today from both local storage and cloud"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-red-600" /> Clear Today's Sessions
+                    </button>
+                  )}
                 </div>
                 {syncMsg && (
                   <div className="mt-2 text-[11px] font-pixel font-bold text-pink-700 animate-fade-in">

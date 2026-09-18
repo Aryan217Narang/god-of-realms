@@ -26,12 +26,22 @@ function isDate15Session(s: StudySession): boolean {
   return s.startTime.includes('-15T') || s.startTime.includes('2026-09-15');
 }
 
+export function isDate18RunawaySession(s: StudySession): boolean {
+  if (!s.startTime) return false;
+  const isoDate = s.startTime.slice(0, 10);
+  const is18 = isoDate.endsWith('-18') || s.startTime.includes('2026-09-18');
+  if (!is18) return false;
+  // Purge today's runaway ~5h 20m session on City Ruins (NoSQL) or any runaway >= 180m on date 18
+  return s.subjectId === 'nosql' || s.durationMinutes >= 180;
+}
+
 /**
  * Sanitizes study sessions:
- * 1. Corrects erroneous ~13.45 hr (800+ min) runaway session on date 15 to exactly 30 minutes.
- * 2. Ensures the total study time on date 15 is clamped to 30 minutes.
- * 3. Caps any runaway session (>= 180 min) anywhere in history.
- * 4. Recalculates all subject statistics (XP, level, unlockedElements, streaks, totalMinutes, etc.)
+ * 1. Purges today's erroneous 5h 20m runaway study session on date 18 (NoSQL).
+ * 2. Corrects erroneous ~13.45 hr (800+ min) runaway session on date 15 to exactly 30 minutes.
+ * 3. Ensures the total study time on date 15 is clamped to 30 minutes.
+ * 4. Caps any runaway session (>= 180 min) anywhere in history.
+ * 5. Recalculates all subject statistics (XP, level, unlockedElements, streaks, totalMinutes, etc.)
  */
 export function sanitizeSessionsAndRecalculate(state: AppState): AppState {
   if (!state || !Array.isArray(state.sessions) || state.sessions.length === 0) {
@@ -39,7 +49,16 @@ export function sanitizeSessionsAndRecalculate(state: AppState): AppState {
   }
 
   let modified = false;
-  let newSessions: StudySession[] = state.sessions.map(s => {
+  // First, remove date 18 runaway sessions
+  let filtered = state.sessions.filter(s => {
+    if (isDate18RunawaySession(s)) {
+      modified = true;
+      return false;
+    }
+    return true;
+  });
+
+  let newSessions: StudySession[] = filtered.map(s => {
     const onDate15 = isDate15Session(s);
     const isRunaway = s.durationMinutes >= 180; // Runaway single timer
 
@@ -665,12 +684,74 @@ export function useStore(userId?: string | null) {
     }
   }, [userId, mergeLocalAndCloud]);
 
+  // ---- Clear Today's Study Sessions (Local & Cloud) ----
+  const clearTodaySessions = useCallback(async (): Promise<boolean> => {
+    const today = todayDateString();
+    let sanitizedState: AppState | null = null;
+
+    setState(prev => {
+      const remainingSessions = (prev.sessions || []).filter(s => {
+        if (!s || !s.startTime) return false;
+        const iso = s.startTime.slice(0, 10);
+        return iso !== today && !iso.endsWith('-18') && !s.startTime.includes('2026-09-18');
+      });
+
+      const next = sanitizeSessionsAndRecalculate({
+        ...prev,
+        sessions: remainingSessions,
+      });
+
+      const updatedSubjects = { ...next.subjects };
+      (Object.keys(updatedSubjects) as SubjectId[]).forEach(id => {
+        updatedSubjects[id] = {
+          ...updatedSubjects[id],
+          todayMinutes: 0,
+        };
+      });
+      next.subjects = updatedSubjects;
+
+      sanitizedState = next;
+      saveState(next, userId);
+      return next;
+    });
+
+    if (userId && sanitizedState) {
+      setCloudStatus('syncing');
+      try {
+        await apiFetch('/api/state/sessions/today', { method: 'DELETE' });
+        const res = await apiFetch('/api/state', {
+          method: 'PUT',
+          body: JSON.stringify({ state: sanitizedState, overwrite: true }),
+        });
+        if (res.success) {
+          setCloudStatus('connected');
+          return true;
+        } else {
+          setCloudStatus('offline');
+          return false;
+        }
+      } catch {
+        setCloudStatus('offline');
+        return false;
+      }
+    }
+    return true;
+  }, [userId]);
+
+  // Expose on window for immediate DevTools console execution
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).clearTodaySessions = clearTodaySessions;
+    }
+  }, [clearTodaySessions]);
+
   return {
     state,
     setState,
     cloudStatus,
     pushToCloud,
     pullFromCloud,
+    clearTodaySessions,
     startTimer,
     pauseTimer,
     resumeTimer,

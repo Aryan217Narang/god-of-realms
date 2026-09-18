@@ -43,6 +43,7 @@ export default function App() {
     resetAllData,
     exportData,
     importData,
+    clearTodaySessions,
   } = useStore(auth.user?.id);
 
   // Apply theme
@@ -129,7 +130,7 @@ export default function App() {
           />
         );
       case 'statistics':
-        return <Statistics state={state} />;
+        return <Statistics state={state} onClearToday={clearTodaySessions} />;
       case 'achievements':
         return <Achievements state={state} />;
       case 'settings':
@@ -138,6 +139,7 @@ export default function App() {
             state={state}
             onUpdateSettings={updateSettings}
             onResetData={resetAllData}
+            onClearToday={clearTodaySessions}
             onExportData={exportData}
             onImportData={importData}
             cloudStatus={cloudStatus}
