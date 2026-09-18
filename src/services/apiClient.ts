@@ -13,8 +13,8 @@ export function getApiBaseUrl(): string {
   if (import.meta.env.DEV) {
     return 'http://localhost:5000';
   }
-  // In production, fallback to same origin or empty
-  return '';
+  // In production, fallback to Render cloud backend URL
+  return 'https://god-of-realms.onrender.com';
 }
 
 interface ApiResponse<T = any> {

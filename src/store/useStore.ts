@@ -26,22 +26,12 @@ function isDate15Session(s: StudySession): boolean {
   return s.startTime.includes('-15T') || s.startTime.includes('2026-09-15');
 }
 
-export function isDate18RunawaySession(s: StudySession): boolean {
-  if (!s.startTime) return false;
-  const isoDate = s.startTime.slice(0, 10);
-  const is18 = isoDate.endsWith('-18') || s.startTime.includes('2026-09-18');
-  if (!is18) return false;
-  // Purge today's runaway ~5h 20m session on City Ruins (NoSQL) or any runaway >= 180m on date 18
-  return s.subjectId === 'nosql' || s.durationMinutes >= 180;
-}
-
 /**
  * Sanitizes study sessions:
- * 1. Purges today's erroneous 5h 20m runaway study session on date 18 (NoSQL).
- * 2. Corrects erroneous ~13.45 hr (800+ min) runaway session on date 15 to exactly 30 minutes.
- * 3. Ensures the total study time on date 15 is clamped to 30 minutes.
- * 4. Caps any runaway session (>= 180 min) anywhere in history.
- * 5. Recalculates all subject statistics (XP, level, unlockedElements, streaks, totalMinutes, etc.)
+ * 1. Corrects erroneous ~13.45 hr (800+ min) runaway session on date 15 to exactly 30 minutes.
+ * 2. Ensures the total study time on date 15 is clamped to 30 minutes.
+ * 3. Caps any extreme runaway session (> 180 min) anywhere in history to 180 minutes.
+ * 4. Recalculates all subject statistics (XP, level, unlockedElements, streaks, totalMinutes, etc.)
  */
 export function sanitizeSessionsAndRecalculate(state: AppState): AppState {
   if (!state || !Array.isArray(state.sessions) || state.sessions.length === 0) {
@@ -49,20 +39,12 @@ export function sanitizeSessionsAndRecalculate(state: AppState): AppState {
   }
 
   let modified = false;
-  // First, remove date 18 runaway sessions
-  let filtered = state.sessions.filter(s => {
-    if (isDate18RunawaySession(s)) {
-      modified = true;
-      return false;
-    }
-    return true;
-  });
 
-  let newSessions: StudySession[] = filtered.map(s => {
+  let newSessions: StudySession[] = state.sessions.map(s => {
     const onDate15 = isDate15Session(s);
-    const isRunaway = s.durationMinutes >= 180; // Runaway single timer
+    const isExtremeRunaway = s.durationMinutes > 180; // Only cap sessions that exceed 3 continuous hours
 
-    if ((onDate15 && s.durationMinutes > 30) || isRunaway) {
+    if (onDate15 && s.durationMinutes > 30) {
       modified = true;
       const targetMin = 30;
       return {
@@ -71,6 +53,17 @@ export function sanitizeSessionsAndRecalculate(state: AppState): AppState {
         xpEarned: calculateXpForSession(targetMin, s.completed),
       };
     }
+
+    if (isExtremeRunaway) {
+      modified = true;
+      const targetMin = 180;
+      return {
+        ...s,
+        durationMinutes: targetMin,
+        xpEarned: calculateXpForSession(targetMin, s.completed),
+      };
+    }
+
     return s;
   });
 
@@ -523,6 +516,8 @@ export function useStore(userId?: string | null) {
   const completeSession = useCallback((actualMinutes: number) => {
     // Bound actual session duration between 1 and 180 minutes to avoid runaway timer errors
     const boundedMinutes = Math.max(1, Math.min(180, Math.round(actualMinutes)));
+    let nextState: AppState | null = null;
+
     setState(prev => {
       const subjectId = prev.timer.selectedSubject;
       if (!subjectId) return prev;
@@ -567,7 +562,7 @@ export function useStore(userId?: string | null) {
         prev.achievements, updatedSubjects, newSessions, globalStreak.current
       );
 
-      return {
+      const result: AppState = {
         ...prev,
         subjects: updatedSubjects,
         sessions: newSessions,
@@ -588,8 +583,116 @@ export function useStore(userId?: string | null) {
           targetDurationMs: prev.settings.studyDurationMinutes * 60 * 1000,
         },
       };
+
+      nextState = result;
+      saveState(result, userId);
+      return result;
     });
-  }, []);
+
+    // Immediate, direct cloud persistence upon completion
+    if (userId && nextState) {
+      setCloudStatus('syncing');
+      apiFetch('/api/state', {
+        method: 'PUT',
+        body: JSON.stringify({ state: nextState, overwrite: true }),
+      }).then(res => {
+        if (res && res.success) {
+          setCloudStatus('connected');
+        } else {
+          setCloudStatus('offline');
+        }
+      }).catch(() => {
+        setCloudStatus('offline');
+      });
+    }
+  }, [userId]);
+
+  // Directly log any study session (e.g. recovered study time or manual entry)
+  const logCompletedSessionDirectly = useCallback(async (
+    subjectId: SubjectId,
+    minutes: number,
+    buildTarget?: string
+  ): Promise<boolean> => {
+    const boundedMinutes = Math.max(1, Math.min(180, Math.round(minutes)));
+    let nextState: AppState | null = null;
+
+    setState(prev => {
+      const session: StudySession = {
+        id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        subjectId,
+        buildTarget: buildTarget || undefined,
+        startTime: new Date(Date.now() - boundedMinutes * 60 * 1000).toISOString(),
+        endTime: new Date().toISOString(),
+        durationMinutes: boundedMinutes,
+        completed: true,
+        xpEarned: calculateXpForSession(boundedMinutes, true),
+      };
+
+      const newSessions = [...prev.sessions, session];
+      const newXp = prev.subjects[subjectId].xp + session.xpEarned;
+      const newLevel = getLevelFromXp(newXp);
+      const newTotalMinutes = prev.subjects[subjectId].totalMinutes + boundedMinutes;
+      const unlockedElements = getUnlockedElements(subjectId, newTotalMinutes, newLevel);
+      const { current, longest } = calculateStreak(newSessions, subjectId);
+      const globalStreak = calculateStreak(newSessions);
+
+      const today = todayDateString();
+      const updatedSubject: Subject = {
+        ...prev.subjects[subjectId],
+        xp: newXp,
+        level: newLevel,
+        totalMinutes: newTotalMinutes,
+        todayMinutes: getSubjectMinutesForPeriod(newSessions, subjectId, 'today'),
+        weekMinutes: getSubjectMinutesForPeriod(newSessions, subjectId, 'week'),
+        monthMinutes: getSubjectMinutesForPeriod(newSessions, subjectId, 'month'),
+        sessionsCompleted: prev.subjects[subjectId].sessionsCompleted + 1,
+        currentStreak: current,
+        longestStreak: Math.max(longest, prev.subjects[subjectId].longestStreak),
+        lastStudiedDate: today,
+        unlockedElements,
+      };
+
+      const updatedSubjects = { ...prev.subjects, [subjectId]: updatedSubject };
+      const { updated: newAchievements } = checkAchievements(
+        prev.achievements, updatedSubjects, newSessions, globalStreak.current
+      );
+
+      const result: AppState = {
+        ...prev,
+        subjects: updatedSubjects,
+        sessions: newSessions,
+        achievements: newAchievements,
+        globalStreak: globalStreak.current,
+        globalLongestStreak: Math.max(globalStreak.longest, prev.globalLongestStreak),
+        globalLastStudiedDate: today,
+      };
+
+      nextState = result;
+      saveState(result, userId);
+      return result;
+    });
+
+    if (userId && nextState) {
+      setCloudStatus('syncing');
+      try {
+        const res = await apiFetch('/api/state', {
+          method: 'PUT',
+          body: JSON.stringify({ state: nextState, overwrite: true }),
+        });
+        if (res.success) {
+          setCloudStatus('connected');
+          return true;
+        } else {
+          setCloudStatus('offline');
+          return false;
+        }
+      } catch {
+        setCloudStatus('offline');
+        return false;
+      }
+    }
+    return true;
+  }, [userId]);
 
   // Compute elapsed ms from timer state
   const getElapsedMs = useCallback((): number => {
@@ -742,8 +845,10 @@ export function useStore(userId?: string | null) {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).clearTodaySessions = clearTodaySessions;
+      (window as any).logStudySession = logCompletedSessionDirectly;
+      (window as any).recoverStudySession = logCompletedSessionDirectly;
     }
-  }, [clearTodaySessions]);
+  }, [clearTodaySessions, logCompletedSessionDirectly]);
 
   return {
     state,
@@ -752,6 +857,7 @@ export function useStore(userId?: string | null) {
     pushToCloud,
     pullFromCloud,
     clearTodaySessions,
+    logCompletedSessionDirectly,
     startTimer,
     pauseTimer,
     resumeTimer,

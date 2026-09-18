@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, X, Maximize2, Pin, PinOff, GripHorizontal } from 'lucide-react';
+import { Play, Pause, RotateCcw, X, Maximize2, Pin, PinOff, GripHorizontal, Check } from 'lucide-react';
 import type { AppState, SubjectId } from '../../types';
 import { formatSeconds } from '../../utils/gameLogic';
 
@@ -8,6 +8,8 @@ interface FloatingMiniTimerProps {
   onPause: () => void;
   onResume: () => void;
   onReset: () => void;
+  onComplete?: (minutes: number) => void;
+  getElapsedMs?: () => number;
   onNavigateToTimer: () => void;
   onClose: () => void;
   getRemainingMs: () => number;
@@ -26,6 +28,8 @@ export const FloatingMiniTimer: React.FC<FloatingMiniTimerProps> = ({
   onPause,
   onResume,
   onReset,
+  onComplete,
+  getElapsedMs,
   onNavigateToTimer,
   onClose,
   getRemainingMs,
@@ -55,10 +59,25 @@ export const FloatingMiniTimer: React.FC<FloatingMiniTimerProps> = ({
   onResumeRef.current = onResume;
   const onResetRef = useRef(onReset);
   onResetRef.current = onReset;
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  const getElapsedMsRef = useRef(getElapsedMs);
+  getElapsedMsRef.current = getElapsedMs;
   const getRemainingMsRef = useRef(getRemainingMs);
   getRemainingMsRef.current = getRemainingMs;
   const stateRef = useRef(state);
   stateRef.current = state;
+
+  const handleCompleteSession = () => {
+    if (onCompleteRef.current) {
+      const rawElapsed = getElapsedMsRef.current ? Math.floor(getElapsedMsRef.current() / 60000) : 0;
+      const targetMin = Math.max(1, Math.round(timerRef.current.targetDurationMs / 60000));
+      const credited = Math.max(1, Math.min(180, rawElapsed > 0 ? rawElapsed : targetMin));
+      onCompleteRef.current(credited);
+    } else {
+      onResetRef.current();
+    }
+  };
 
   const timer = state.timer;
   const currentSubjectId: SubjectId = timer.selectedSubject || 'daa';
@@ -261,12 +280,15 @@ export const FloatingMiniTimer: React.FC<FloatingMiniTimerProps> = ({
             </div>
           ` : ''}
 
-          <div style="display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 6px;">
-            <button id="pip-toggle-btn" style="flex: 1; padding: 7px 12px; border-radius: 8px; border: none; background-color: #ec4899; color: white; font-weight: bold; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+          <div style="display: flex; align-items: center; gap: 6px; width: 100%; margin-top: 6px;">
+            <button id="pip-toggle-btn" style="flex: 1; padding: 7px 8px; border-radius: 8px; border: none; background-color: #ec4899; color: white; font-weight: bold; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
               ⏸ Pause
             </button>
-            <button id="pip-reset-btn" style="padding: 7px 12px; border-radius: 8px; border: 1px solid ${isDark ? '#475569' : '#cbd5e1'}; background: transparent; color: ${isDark ? '#cbd5e1' : '#475569'}; font-size: 11px; cursor: pointer;">
-              ↺ Reset
+            <button id="pip-complete-btn" style="flex: 1; padding: 7px 8px; border-radius: 8px; border: none; background-color: #22c55e; color: white; font-weight: bold; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+              ✓ Complete
+            </button>
+            <button id="pip-reset-btn" style="padding: 7px 8px; border-radius: 8px; border: 1px solid ${isDark ? '#475569' : '#cbd5e1'}; background: transparent; color: ${isDark ? '#cbd5e1' : '#475569'}; font-size: 11px; cursor: pointer;" title="Reset">
+              ↺
             </button>
           </div>
         `;
@@ -276,6 +298,7 @@ export const FloatingMiniTimer: React.FC<FloatingMiniTimerProps> = ({
         const statusEl = container.querySelector('#pip-status-text') as HTMLElement | null;
         const modeBadge = container.querySelector('#pip-mode-badge') as HTMLElement | null;
         const toggleBtn = container.querySelector('#pip-toggle-btn') as HTMLButtonElement | null;
+        const completeBtn = container.querySelector('#pip-complete-btn') as HTMLButtonElement | null;
         const resetBtn = container.querySelector('#pip-reset-btn') as HTMLButtonElement | null;
 
         if (toggleBtn) {
@@ -285,6 +308,12 @@ export const FloatingMiniTimer: React.FC<FloatingMiniTimerProps> = ({
             } else {
               onPauseRef.current();
             }
+          };
+        }
+
+        if (completeBtn) {
+          completeBtn.onclick = () => {
+            handleCompleteSession();
           };
         }
 
@@ -502,12 +531,12 @@ export const FloatingMiniTimer: React.FC<FloatingMiniTimerProps> = ({
           </div>
 
           {/* Controls Bar */}
-          <div className="flex items-center justify-center gap-2 mt-3 w-full">
+          <div className="flex items-center justify-center gap-1.5 mt-3 w-full">
             {timer.isPaused ? (
               <button
                 type="button"
                 onClick={onResume}
-                className="flex-1 py-1.5 px-3 rounded-lg bg-pink-500 hover:bg-pink-600 text-white font-pixel font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-pointer transition-colors"
+                className="flex-1 py-1.5 px-2 rounded-lg bg-pink-500 hover:bg-pink-600 text-white font-pixel font-bold text-xs flex items-center justify-center gap-1 shadow-sm cursor-pointer transition-colors"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
                 <span>Resume</span>
@@ -516,10 +545,22 @@ export const FloatingMiniTimer: React.FC<FloatingMiniTimerProps> = ({
               <button
                 type="button"
                 onClick={onPause}
-                className="flex-1 py-1.5 px-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-pixel font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-pointer transition-colors"
+                className="flex-1 py-1.5 px-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-pixel font-bold text-xs flex items-center justify-center gap-1 shadow-sm cursor-pointer transition-colors"
               >
                 <Pause className="w-3.5 h-3.5" />
                 <span>Pause</span>
+              </button>
+            )}
+
+            {timer.mode === 'study' && (
+              <button
+                type="button"
+                onClick={handleCompleteSession}
+                className="flex-1 py-1.5 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-pixel font-bold text-xs flex items-center justify-center gap-1 shadow-sm cursor-pointer transition-colors"
+                title="Complete and credit study time"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Complete</span>
               </button>
             )}
 

@@ -8,6 +8,7 @@ interface SettingsProps {
   onUpdateSettings: (updates: Partial<AppState['settings']>) => void;
   onResetData?: () => void;
   onClearToday?: () => Promise<boolean> | void;
+  onLogSessionDirectly?: (subjectId: SubjectId, minutes: number, buildTarget?: string) => Promise<boolean>;
   onExportData: () => string;
   onImportData: (json: string) => boolean;
   cloudStatus?: 'connected' | 'syncing' | 'offline' | 'local';
@@ -23,6 +24,7 @@ export const Settings: React.FC<SettingsProps> = ({
   onUpdateSettings,
   onResetData: _onResetData,
   onClearToday,
+  onLogSessionDirectly,
   onExportData,
   onImportData,
   cloudStatus = 'local',
@@ -32,6 +34,11 @@ export const Settings: React.FC<SettingsProps> = ({
 }) => {
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const [manualSubject, setManualSubject] = useState<SubjectId>('nosql');
+  const [manualMinutes, setManualMinutes] = useState<number>(105);
+  const [manualProject, setManualProject] = useState<string>('Restoring Neon Data Spires');
+  const [isLoggingManual, setIsLoggingManual] = useState<boolean>(false);
+  const [manualLogMsg, setManualLogMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const s = state.settings;
@@ -458,6 +465,130 @@ export const Settings: React.FC<SettingsProps> = ({
               <div className="mb-4 p-3 bg-pink-50/70 border border-pink-200 rounded text-xs font-pixel text-slate-600 flex items-center gap-2">
                 <Cloud className="w-4 h-4 text-pink-400 flex-shrink-0" />
                 <span>Log in to an Adventurer Account to enable automatic real-time cloud sync across devices.</span>
+              </div>
+            )}
+
+            {/* Direct Study Session Recovery / Credit Widget */}
+            {onLogSessionDirectly && (
+              <div className="mb-5 p-3.5 bg-gradient-to-r from-pink-50 to-amber-50/60 rounded-lg border-2 border-pink-300 shadow-[2px_2px_0px_#fbcfe8]">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Sparkles className="w-4 h-4 text-pink-600" />
+                  <h4 className="text-xs font-pixel-heading text-pink-950 font-bold">
+                    RECOVER / CREDIT STUDY SESSION
+                  </h4>
+                </div>
+                <p className="text-[11px] font-pixel text-slate-600 mb-3">
+                  Instantly credit your study time directly to local storage and sync to the cloud database.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-3">
+                  <div>
+                    <label className="block text-[10px] font-pixel text-slate-700 font-bold mb-1">
+                      Realm
+                    </label>
+                    <select
+                      value={manualSubject}
+                      onChange={e => setManualSubject(e.target.value as SubjectId)}
+                      className="w-full bg-white border border-pink-300 rounded px-2 py-1.5 text-xs font-pixel text-slate-900"
+                    >
+                      {SUBJECT_IDS.map(id => (
+                        <option key={id} value={id}>
+                          {state.subjects[id]?.shortName || id}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-pixel text-slate-700 font-bold mb-1">
+                      Duration (Minutes)
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min={1}
+                        max={180}
+                        value={manualMinutes}
+                        onChange={e => setManualMinutes(Math.max(1, Math.min(180, Number(e.target.value))))}
+                        className="w-full bg-white border border-pink-300 rounded px-2 py-1.5 text-xs font-mono text-slate-900"
+                      />
+                      <span className="text-[10px] font-pixel text-slate-500">m</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-pixel text-slate-700 font-bold mb-1">
+                      Quick Preset
+                    </label>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setManualMinutes(90)}
+                        className={`px-1.5 py-1 text-[10px] rounded border font-pixel ${manualMinutes === 90 ? 'bg-pink-600 text-white border-pink-700 font-bold' : 'bg-white text-slate-700 border-pink-200'}`}
+                      >
+                        1.5h
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setManualMinutes(105)}
+                        className={`px-1.5 py-1 text-[10px] rounded border font-pixel ${manualMinutes === 105 ? 'bg-pink-600 text-white border-pink-700 font-bold' : 'bg-white text-slate-700 border-pink-200'}`}
+                      >
+                        1h 45m
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setManualMinutes(120)}
+                        className={`px-1.5 py-1 text-[10px] rounded border font-pixel ${manualMinutes === 120 ? 'bg-pink-600 text-white border-pink-700 font-bold' : 'bg-white text-slate-700 border-pink-200'}`}
+                      >
+                        2.0h
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-3">
+                  <label className="block text-[10px] font-pixel text-slate-700 font-bold mb-1">
+                    Expedition / Monument Built (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={manualProject}
+                    onChange={e => setManualProject(e.target.value)}
+                    placeholder="e.g. Restoring Neon Data Spires"
+                    className="w-full bg-white border border-pink-300 rounded px-2.5 py-1.5 text-xs font-pixel text-slate-900 focus:outline-none focus:border-pink-500"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isLoggingManual}
+                    onClick={async () => {
+                      setIsLoggingManual(true);
+                      try {
+                        const ok = await onLogSessionDirectly(manualSubject, manualMinutes, manualProject);
+                        setManualLogMsg(
+                          ok
+                            ? `✓ Successfully credited ${manualMinutes}m to ${state.subjects[manualSubject]?.shortName} and uploaded to cloud database!`
+                            : `✓ Credited ${manualMinutes}m locally (cloud offline).`
+                        );
+                        setTimeout(() => setManualLogMsg(null), 5000);
+                      } finally {
+                        setIsLoggingManual(false);
+                      }
+                    }}
+                    className="pixel-btn pixel-btn-green py-1.5 px-3 text-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>{isLoggingManual ? 'Recording & Uplinking...' : `Log ${manualMinutes}m & Sync to Cloud`}</span>
+                  </button>
+                </div>
+
+                {manualLogMsg && (
+                  <div className="mt-2 text-xs font-pixel font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 p-2 rounded animate-fade-in">
+                    {manualLogMsg}
+                  </div>
+                )}
               </div>
             )}
 

@@ -44,6 +44,7 @@ export default function App() {
     exportData,
     importData,
     clearTodaySessions,
+    logCompletedSessionDirectly,
   } = useStore(auth.user?.id);
 
   // Apply theme
@@ -94,6 +95,22 @@ export default function App() {
     addToast(msg);
   }, [completeSession, state.timer.selectedSubject, state.timer.currentBuildTarget, state.subjects, addToast]);
 
+  // Global timer completion monitor (tracks sessions even when user leaves the StudyTimer page)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (currentPage !== 'timer' && state.timer.isRunning && !state.timer.isPaused && state.timer.mode === 'study') {
+        const rem = getRemainingMs();
+        if (rem <= 0) {
+          const targetMin = Math.max(1, Math.round(state.timer.targetDurationMs / 60000));
+          const rawElapsed = Math.max(1, Math.floor(getElapsedMs() / 60000));
+          const credited = Math.max(targetMin, Math.min(180, rawElapsed));
+          handleComplete(credited);
+        }
+      }
+    }, 500);
+    return () => clearInterval(interval);
+  }, [currentPage, state.timer, getRemainingMs, getElapsedMs, handleComplete]);
+
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
@@ -140,6 +157,7 @@ export default function App() {
             onUpdateSettings={updateSettings}
             onResetData={resetAllData}
             onClearToday={clearTodaySessions}
+            onLogSessionDirectly={logCompletedSessionDirectly}
             onExportData={exportData}
             onImportData={importData}
             cloudStatus={cloudStatus}
@@ -258,6 +276,8 @@ export default function App() {
           onPause={pauseTimer}
           onResume={resumeTimer}
           onReset={resetTimer}
+          onComplete={handleComplete}
+          getElapsedMs={getElapsedMs}
           onNavigateToTimer={() => navigate('timer')}
           onClose={() => setShowMiniTimer(false)}
           getRemainingMs={getRemainingMs}

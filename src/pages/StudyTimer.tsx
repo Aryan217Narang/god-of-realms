@@ -120,8 +120,8 @@ export const StudyTimer: React.FC<TimerProps> = ({
         if (isStudyMode) {
           const targetMin = Math.max(1, Math.round(timer.targetDurationMs / 60000));
           const rawElapsed = Math.max(1, Math.floor(getElapsedMs() / 60000));
-          // Cap elapsed to target session duration so runaway sleep/background timers cannot record 13+ hours
-          const elapsed = Math.min(targetMin, rawElapsed);
+          // Credit full elapsed study time (honoring overtime up to 180 min)
+          const elapsed = Math.max(targetMin, Math.min(180, rawElapsed));
           const earned = elapsed + 25; // 1 XP per minute + 25 XP bonus
           setLastMinutes(elapsed);
           setLastXP(earned);
@@ -471,10 +471,9 @@ export const StudyTimer: React.FC<TimerProps> = ({
                       onClick={() => {
                         const rawElapsed = Math.floor(getElapsedMs() / 60000);
                         const targetMin = Math.max(1, Math.round(timer.targetDurationMs / 60000));
-                        // Cap manual complete to target duration or max 180 min to prevent runaway elapsed time
-                        const elapsed = Math.min(targetMin, Math.min(180, rawElapsed));
-                        if (elapsed > 0) onComplete(elapsed);
-                        else onReset();
+                        // Credit actual elapsed time up to 180m, or targetMin if elapsed is 0/timer finished
+                        const elapsed = Math.max(1, Math.min(180, rawElapsed > 0 ? rawElapsed : targetMin));
+                        onComplete(elapsed);
                       }}
                       className="pixel-btn pixel-btn-green flex-1 py-2.5 flex items-center justify-center gap-1"
                     >
