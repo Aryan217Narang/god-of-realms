@@ -147,7 +147,7 @@ export default function App() {
           />
         );
       case 'statistics':
-        return <Statistics state={state} onClearToday={clearTodaySessions} />;
+        return <Statistics state={state} />;
       case 'achievements':
         return <Achievements state={state} />;
       case 'settings':

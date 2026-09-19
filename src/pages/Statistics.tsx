@@ -17,7 +17,6 @@ import { Scroll, Sparkles } from 'lucide-react';
 
 interface StatsProps {
   state: AppState;
-  onClearToday?: () => Promise<boolean> | void;
 }
 
 const SUBJECT_IDS: SubjectId[] = ['daa', 'os', 'nosql', 'hda_cognitive', 'gv'];
@@ -36,7 +35,7 @@ const LABELS: Record<SubjectId, string> = {
   gv: 'Floating Isles (GV)',
 };
 
-export const Statistics: React.FC<StatsProps> = ({ state, onClearToday }) => {
+export const Statistics: React.FC<StatsProps> = ({ state }) => {
   const [period, setPeriod] = useState<7 | 30>(7);
   const [piePeriod, setPiePeriod] = useState<'today' | '7d' | '30d' | 'all'>('today');
   const [selectedBarDate, setSelectedBarDate] = useState<string | null>(null);
@@ -317,21 +316,6 @@ export const Statistics: React.FC<StatsProps> = ({ state, onClearToday }) => {
                   ✕ Deselect
                 </button>
               )}
-              {onClearToday && todayMin > 0 && (
-                <button
-                  onClick={async () => {
-                    if (window.confirm("Are you sure you want to clear today's study session? This will wipe today's logged study time locally and sync the cleared state to the cloud database.")) {
-                      await onClearToday();
-                      setSelectedBarDate(null);
-                      setSelectedBarLabel(null);
-                    }
-                  }}
-                  className="px-2.5 py-1 rounded bg-red-100 text-red-700 text-[11px] font-mono font-bold hover:bg-red-200 cursor-pointer border border-red-300 flex items-center gap-1 shadow-sm"
-                  title="Clear today's study sessions locally and from cloud"
-                >
-                  🗑️ Clear Today's Study ({formatTime(todayMin, timeFormat)})
-                </button>
-              )}
               <div className="flex gap-1 bg-pink-50 p-1 rounded border border-pink-200 self-start sm:self-auto">
                 <button
                   onClick={() => {
@@ -471,19 +455,6 @@ export const Statistics: React.FC<StatsProps> = ({ state, onClearToday }) => {
               </div>
 
               <div className="flex items-center gap-1.5 flex-wrap">
-                {selectedBarDate && (
-                  <button
-                    onClick={() => {
-                      setSelectedBarDate(null);
-                      setSelectedBarLabel(null);
-                      setPiePeriod('today');
-                    }}
-                    className="px-2 py-1 rounded bg-rose-100 text-rose-800 hover:bg-rose-200 text-[11px] font-mono font-bold cursor-pointer border border-rose-300"
-                    title="Reset to today"
-                  >
-                    ✕ Reset
-                  </button>
-                )}
                 <div className="flex gap-1 bg-pink-50 p-1 rounded border border-pink-200 self-start sm:self-auto flex-wrap">
                   {[
                     { id: 'today', label: '📅 Today' },

@@ -723,8 +723,23 @@ export function useStore(userId?: string | null) {
   const resetAllData = useCallback(() => {
     const fresh = getDefaultState();
     setState(fresh);
-    saveState(fresh);
-  }, []);
+    saveState(fresh, userId);
+    if (userId) {
+      setCloudStatus('syncing');
+      apiFetch('/api/state', {
+        method: 'PUT',
+        body: JSON.stringify({ state: fresh, overwrite: true }),
+      }).then(res => {
+        if (res && res.success) {
+          setCloudStatus('connected');
+        } else {
+          setCloudStatus('offline');
+        }
+      }).catch(() => {
+        setCloudStatus('offline');
+      });
+    }
+  }, [userId]);
 
   const exportData = useCallback((): string => {
     return JSON.stringify(stateRef.current, null, 2);

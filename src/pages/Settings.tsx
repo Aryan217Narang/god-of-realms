@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import type { AppState, SubjectId, TimeFormat } from '../types';
 import { AncientJournalPanel } from '../components/journal/AncientJournalPanel';
-import { Volume2, VolumeX, Sun, Moon, Download, Upload, Sparkles, Sliders, BookOpen, Clock, Cloud, CloudUpload, CloudDownload, Trash2 } from 'lucide-react';
+import { Volume2, VolumeX, Sun, Moon, Download, Upload, Sparkles, Sliders, BookOpen, Clock, Cloud, CloudUpload, CloudDownload, Trash2, RotateCcw, AlertTriangle } from 'lucide-react';
+import { getTotalMinutesForPeriod, formatTime } from '../utils/gameLogic';
 
 interface SettingsProps {
   state: AppState;
@@ -22,7 +23,7 @@ const SUBJECT_IDS: SubjectId[] = ['daa', 'os', 'nosql', 'hda_cognitive', 'gv'];
 export const Settings: React.FC<SettingsProps> = ({
   state,
   onUpdateSettings,
-  onResetData: _onResetData,
+  onResetData,
   onClearToday,
   onLogSessionDirectly,
   onExportData,
@@ -42,6 +43,7 @@ export const Settings: React.FC<SettingsProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const s = state.settings;
+  const todayMin = getTotalMinutesForPeriod(state.sessions, 'today');
 
   const handleExport = () => {
     const json = onExportData();
@@ -439,21 +441,6 @@ export const Settings: React.FC<SettingsProps> = ({
                   >
                     <CloudDownload className="w-3.5 h-3.5" /> Pull from Cloud
                   </button>
-                  {onClearToday && (
-                    <button
-                      onClick={async () => {
-                        if (window.confirm("Are you sure you want to clear today's study sessions? This will wipe today's study time locally and remove it from the cloud database.")) {
-                          const ok = await onClearToday();
-                          setSyncMsg(ok !== false ? "✓ Today's study sessions cleared locally and from cloud!" : "✗ Cleared locally; cloud sync failed.");
-                          setTimeout(() => setSyncMsg(null), 4000);
-                        }
-                      }}
-                      className="pixel-btn bg-red-100 border-red-300 text-red-700 hover:bg-red-200 py-1.5 px-3 text-[11px] flex items-center gap-1.5 cursor-pointer font-bold"
-                      title="Clear all study sessions recorded today from both local storage and cloud"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-red-600" /> Clear Today's Sessions
-                    </button>
-                  )}
                 </div>
                 {syncMsg && (
                   <div className="mt-2 text-[11px] font-pixel font-bold text-pink-700 animate-fade-in">
@@ -629,6 +616,55 @@ export const Settings: React.FC<SettingsProps> = ({
                   : '✗ Import failed — invalid JSON format.'}
               </div>
             )}
+
+            {/* Danger Zone: Session Clearing & Factory Reset */}
+            <div className="mt-6 pt-5 border-t-2 border-dashed border-red-200">
+              <div className="flex items-center gap-1.5 mb-1.5 text-red-900 font-pixel font-bold text-xs">
+                <AlertTriangle className="w-4 h-4 text-red-500" />
+                <span>DATA RESET & CLEAR ACTIONS</span>
+              </div>
+              <p className="text-[11px] font-pixel text-slate-600 mb-3">
+                Wipe today's study records, or reset all your realm chronicles and progress back to factory defaults.
+              </p>
+
+              <div className="flex flex-wrap gap-2.5">
+                {onClearToday && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (window.confirm("Are you sure you want to clear today's study sessions? This will wipe today's study time locally and remove it from the cloud database.")) {
+                        const ok = await onClearToday();
+                        setSyncMsg(ok !== false ? "✓ Today's study sessions cleared locally and from cloud!" : "✗ Cleared locally; cloud sync failed.");
+                        setTimeout(() => setSyncMsg(null), 4000);
+                      }
+                    }}
+                    className="pixel-btn bg-amber-100 border-amber-300 text-amber-900 hover:bg-amber-200 py-2 px-3 text-xs flex items-center gap-1.5 cursor-pointer font-bold transition-colors"
+                    title="Clear today's study sessions recorded today"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Clear Today's Study {todayMin > 0 ? `(${formatTime(todayMin, s.timeFormat || 'hours_decimal')})` : ''}</span>
+                  </button>
+                )}
+
+                {onResetData && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm("⚠️ DANGER: Are you sure you want to reset all realm progress and data? This will reset all study sessions, levels, elements, and achievements back to defaults. This action cannot be undone!")) {
+                        onResetData();
+                        setSyncMsg("✓ All realm data has been reset to defaults.");
+                        setTimeout(() => setSyncMsg(null), 4000);
+                      }
+                    }}
+                    className="pixel-btn bg-red-100 border-red-400 text-red-800 hover:bg-red-200 py-2 px-3 text-xs flex items-center gap-1.5 cursor-pointer font-bold transition-colors"
+                    title="Reset all realm progress and data"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-red-600" />
+                    <span>Reset All Data</span>
+                  </button>
+                )}
+              </div>
+            </div>
           </AncientJournalPanel>
         </div>
       </div>
