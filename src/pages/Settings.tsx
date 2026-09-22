@@ -40,6 +40,8 @@ export const Settings: React.FC<SettingsProps> = ({
   const [manualProject, setManualProject] = useState<string>('Restoring Neon Data Spires');
   const [isLoggingManual, setIsLoggingManual] = useState<boolean>(false);
   const [manualLogMsg, setManualLogMsg] = useState<string | null>(null);
+  const [clearMsg, setClearMsg] = useState<string | null>(null);
+  const [isClearing, setIsClearing] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const s = state.settings;
@@ -631,29 +633,48 @@ export const Settings: React.FC<SettingsProps> = ({
                 {onClearToday && (
                   <button
                     type="button"
+                    disabled={isClearing}
                     onClick={async () => {
                       if (window.confirm("Are you sure you want to clear today's study sessions? This will wipe today's study time locally and remove it from the cloud database.")) {
-                        const ok = await onClearToday();
-                        setSyncMsg(ok !== false ? "✓ Today's study sessions cleared locally and from cloud!" : "✗ Cleared locally; cloud sync failed.");
-                        setTimeout(() => setSyncMsg(null), 4000);
+                        setIsClearing(true);
+                        try {
+                          const ok = await onClearToday();
+                          const msg = ok !== false
+                            ? "✓ Today's study sessions cleared locally and from cloud!"
+                            : "✗ Cleared locally; cloud sync failed.";
+                          setClearMsg(msg);
+                          setSyncMsg(msg);
+                        } catch {
+                          const err = "✗ An error occurred while clearing sessions.";
+                          setClearMsg(err);
+                          setSyncMsg(err);
+                        } finally {
+                          setIsClearing(false);
+                          setTimeout(() => setClearMsg(null), 5000);
+                          setTimeout(() => setSyncMsg(null), 5000);
+                        }
                       }
                     }}
-                    className="pixel-btn bg-amber-100 border-amber-300 text-amber-900 hover:bg-amber-200 py-2 px-3 text-xs flex items-center gap-1.5 cursor-pointer font-bold transition-colors"
+                    className={`pixel-btn bg-amber-100 border-amber-300 text-amber-900 hover:bg-amber-200 py-2 px-3 text-xs flex items-center gap-1.5 cursor-pointer font-bold transition-colors ${isClearing ? 'opacity-60 cursor-not-allowed' : ''}`}
                     title="Clear today's study sessions recorded today"
                   >
-                    <Trash2 className="w-3.5 h-3.5 text-amber-700" />
-                    <span>Clear Today's Study {todayMin > 0 ? `(${formatTime(todayMin, s.timeFormat || 'hours_decimal')})` : ''}</span>
+                    <Trash2 className={`w-3.5 h-3.5 text-amber-700 ${isClearing ? 'animate-spin' : ''}`} />
+                    <span>{isClearing ? "Clearing Today..." : `Clear Today's Study ${todayMin > 0 ? `(${formatTime(todayMin, s.timeFormat || 'hours_decimal')})` : ''}`}</span>
                   </button>
                 )}
 
                 {onResetData && (
                   <button
                     type="button"
+                    disabled={isClearing}
                     onClick={() => {
                       if (window.confirm("⚠️ DANGER: Are you sure you want to reset all realm progress and data? This will reset all study sessions, levels, elements, and achievements back to defaults. This action cannot be undone!")) {
                         onResetData();
-                        setSyncMsg("✓ All realm data has been reset to defaults.");
-                        setTimeout(() => setSyncMsg(null), 4000);
+                        const msg = "✓ All realm data has been reset to defaults.";
+                        setClearMsg(msg);
+                        setSyncMsg(msg);
+                        setTimeout(() => setClearMsg(null), 5000);
+                        setTimeout(() => setSyncMsg(null), 5000);
                       }
                     }}
                     className="pixel-btn bg-red-100 border-red-400 text-red-800 hover:bg-red-200 py-2 px-3 text-xs flex items-center gap-1.5 cursor-pointer font-bold transition-colors"
@@ -664,6 +685,16 @@ export const Settings: React.FC<SettingsProps> = ({
                   </button>
                 )}
               </div>
+
+              {clearMsg && (
+                <div className={`mt-3 p-2.5 text-xs font-pixel font-bold rounded border animate-fade-in ${
+                  clearMsg.startsWith('✓')
+                    ? 'bg-amber-50 border-amber-300 text-amber-900'
+                    : 'bg-red-50 border-red-300 text-red-900'
+                }`}>
+                  {clearMsg}
+                </div>
+              )}
             </div>
           </AncientJournalPanel>
         </div>

@@ -86,15 +86,30 @@ router.delete('/sessions/today', requireAuth, async (req: AuthenticatedRequest, 
     }
 
     const todayStr = new Date().toISOString().slice(0, 10);
+    const clientDate = typeof req.query.date === 'string' && req.query.date ? req.query.date : null;
     const filteredSessions = (currentState.sessions || []).filter((s: any) => {
       if (!s || !s.startTime) return false;
       const iso = s.startTime.slice(0, 10);
-      return iso !== todayStr && !iso.endsWith('-18') && !s.startTime.includes('2026-09-18');
+      if (iso === todayStr || (clientDate && iso === clientDate)) {
+        return false;
+      }
+      return true;
+    });
+
+    const updatedSubjects = { ...(currentState.subjects || {}) };
+    Object.keys(updatedSubjects).forEach(key => {
+      if (updatedSubjects[key]) {
+        updatedSubjects[key] = {
+          ...updatedSubjects[key],
+          todayMinutes: 0,
+        };
+      }
     });
 
     const updatedState = {
       ...currentState,
       sessions: filteredSessions,
+      subjects: updatedSubjects,
     };
 
     await saveUserState(req.userId!, updatedState);

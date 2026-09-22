@@ -3,7 +3,7 @@ import type { AppState, Subject, SubjectId, StudySession } from '../types';
 import {
   getDefaultState, getLevelFromXp, calculateXpForSession,
   getUnlockedElements, calculateStreak, checkAchievements,
-  getSubjectMinutesForPeriod, todayDateString,
+  getSubjectMinutesForPeriod, todayDateString, isSessionToday,
 } from '../utils/gameLogic';
 import { apiFetch } from '../services/apiClient';
 
@@ -804,44 +804,38 @@ export function useStore(userId?: string | null) {
 
   // ---- Clear Today's Study Sessions (Local & Cloud) ----
   const clearTodaySessions = useCallback(async (): Promise<boolean> => {
-    const today = todayDateString();
-    let sanitizedState: AppState | null = null;
+    const current = stateRef.current;
+    const remainingSessions = (current.sessions || []).filter(s => !isSessionToday(s));
 
-    setState(prev => {
-      const remainingSessions = (prev.sessions || []).filter(s => {
-        if (!s || !s.startTime) return false;
-        const iso = s.startTime.slice(0, 10);
-        return iso !== today && !iso.endsWith('-18') && !s.startTime.includes('2026-09-18');
-      });
+    const next = sanitizeSessionsAndRecalculate({
+      ...current,
+      sessions: remainingSessions,
+    });
 
-      const next = sanitizeSessionsAndRecalculate({
-        ...prev,
-        sessions: remainingSessions,
-      });
-
-      const updatedSubjects = { ...next.subjects };
-      (Object.keys(updatedSubjects) as SubjectId[]).forEach(id => {
+    const updatedSubjects = { ...next.subjects };
+    (Object.keys(updatedSubjects) as SubjectId[]).forEach(id => {
+      if (updatedSubjects[id]) {
         updatedSubjects[id] = {
           ...updatedSubjects[id],
           todayMinutes: 0,
         };
-      });
-      next.subjects = updatedSubjects;
-
-      sanitizedState = next;
-      saveState(next, userId);
-      return next;
+      }
     });
+    next.subjects = updatedSubjects;
 
-    if (userId && sanitizedState) {
+    setState(next);
+    saveState(next, userId);
+
+    if (userId) {
       setCloudStatus('syncing');
       try {
-        await apiFetch('/api/state/sessions/today', { method: 'DELETE' });
+        const clientDate = new Date().toISOString().slice(0, 10);
+        await apiFetch(`/api/state/sessions/today?date=${clientDate}`, { method: 'DELETE' });
         const res = await apiFetch('/api/state', {
           method: 'PUT',
-          body: JSON.stringify({ state: sanitizedState, overwrite: true }),
+          body: JSON.stringify({ state: next, overwrite: true }),
         });
-        if (res.success) {
+        if (res && res.success) {
           setCloudStatus('connected');
           return true;
         } else {
