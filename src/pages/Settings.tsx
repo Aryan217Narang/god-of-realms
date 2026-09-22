@@ -42,6 +42,7 @@ export const Settings: React.FC<SettingsProps> = ({
   const [manualLogMsg, setManualLogMsg] = useState<string | null>(null);
   const [clearMsg, setClearMsg] = useState<string | null>(null);
   const [isClearing, setIsClearing] = useState<boolean>(false);
+  const [confirmClearToday, setConfirmClearToday] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const s = state.settings;
@@ -630,12 +631,12 @@ export const Settings: React.FC<SettingsProps> = ({
               </p>
 
               <div className="flex flex-wrap gap-2.5">
-                {onClearToday && (
-                  <button
-                    type="button"
-                    disabled={isClearing}
-                    onClick={async () => {
-                      if (window.confirm("Are you sure you want to clear today's study sessions? This will wipe today's study time locally and remove it from the cloud database.")) {
+                {onClearToday && confirmClearToday ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={isClearing}
+                      onClick={async () => {
                         setIsClearing(true);
                         try {
                           const ok = await onClearToday();
@@ -650,18 +651,38 @@ export const Settings: React.FC<SettingsProps> = ({
                           setSyncMsg(err);
                         } finally {
                           setIsClearing(false);
+                          setConfirmClearToday(false);
                           setTimeout(() => setClearMsg(null), 5000);
                           setTimeout(() => setSyncMsg(null), 5000);
                         }
-                      }
-                    }}
-                    className={`pixel-btn bg-amber-100 border-amber-300 text-amber-900 hover:bg-amber-200 py-2 px-3 text-xs flex items-center gap-1.5 cursor-pointer font-bold transition-colors ${isClearing ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      }}
+                      className="pixel-btn bg-amber-200 border-amber-400 text-amber-950 hover:bg-amber-300 py-2 px-3 text-xs flex items-center gap-1.5 cursor-pointer font-bold animate-pulse"
+                      title="Click to wipe today's study records"
+                    >
+                      <Trash2 className={`w-3.5 h-3.5 text-amber-800 ${isClearing ? 'animate-spin' : ''}`} />
+                      <span>{isClearing ? "Clearing Now..." : `⚠️ Confirm Wipe Today (${todayMin > 0 ? formatTime(todayMin, s.timeFormat || 'hours_decimal') : '0h'})`}</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isClearing}
+                      onClick={() => setConfirmClearToday(false)}
+                      className="pixel-btn bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200 py-2 px-2.5 text-xs font-bold cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : onClearToday ? (
+                  <button
+                    type="button"
+                    disabled={isClearing}
+                    onClick={() => setConfirmClearToday(true)}
+                    className="pixel-btn bg-amber-100 border-amber-300 text-amber-900 hover:bg-amber-200 py-2 px-3 text-xs flex items-center gap-1.5 cursor-pointer font-bold transition-colors"
                     title="Clear today's study sessions recorded today"
                   >
-                    <Trash2 className={`w-3.5 h-3.5 text-amber-700 ${isClearing ? 'animate-spin' : ''}`} />
-                    <span>{isClearing ? "Clearing Today..." : `Clear Today's Study ${todayMin > 0 ? `(${formatTime(todayMin, s.timeFormat || 'hours_decimal')})` : ''}`}</span>
+                    <Trash2 className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Clear Today's Study {todayMin > 0 ? `(${formatTime(todayMin, s.timeFormat || 'hours_decimal')})` : ''}</span>
                   </button>
-                )}
+                ) : null}
 
                 {onResetData && (
                   <button

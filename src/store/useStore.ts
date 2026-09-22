@@ -257,11 +257,20 @@ export function useStore(userId?: string | null) {
 
   // Helper to merge local and cloud state safely without losing sessions
   const mergeLocalAndCloud = useCallback((local: AppState, cloud: AppState): AppState => {
+    const localTodaySessions = (local.sessions || []).filter(s => s.completed && isSessionToday(s));
+    const localClearedToday = localTodaySessions.length === 0;
+
     const localSessions = local.sessions || [];
     const cloudSessions = cloud.sessions || [];
     const map = new Map<string, StudySession>();
     for (const s of cloudSessions) {
-      if (s && s.id) map.set(s.id, s);
+      if (s && s.id) {
+        // Prevent resurrecting today's sessions if local has explicitly cleared today
+        if (localClearedToday && isSessionToday(s)) {
+          continue;
+        }
+        map.set(s.id, s);
+      }
     }
     for (const s of localSessions) {
       if (s && s.id) map.set(s.id, s);
@@ -804,7 +813,15 @@ export function useStore(userId?: string | null) {
 
   // ---- Clear Today's Study Sessions (Local & Cloud) ----
   const clearTodaySessions = useCallback(async (): Promise<boolean> => {
+    // 1. Immediately cancel pending debounced auto-sync so stale state is never sent
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+      syncTimeoutRef.current = null;
+    }
+
     const current = stateRef.current;
+    const sessionsToRemove = (current.sessions || []).filter(s => isSessionToday(s));
+    const sessionIdsToRemove = sessionsToRemove.map(s => s.id).filter(Boolean);
     const remainingSessions = (current.sessions || []).filter(s => !isSessionToday(s));
 
     const next = sanitizeSessionsAndRecalculate({
@@ -823,6 +840,7 @@ export function useStore(userId?: string | null) {
     });
     next.subjects = updatedSubjects;
 
+    // Immediately commit to local storage and update React view
     setState(next);
     saveState(next, userId);
 
@@ -830,7 +848,15 @@ export function useStore(userId?: string | null) {
       setCloudStatus('syncing');
       try {
         const clientDate = new Date().toISOString().slice(0, 10);
-        await apiFetch(`/api/state/sessions/today?date=${clientDate}`, { method: 'DELETE' });
+        const tzOffset = new Date().getTimezoneOffset();
+
+        // 1. Purge matching session IDs and date in cloud database
+        await apiFetch(`/api/state/sessions/today?date=${clientDate}&tzOffset=${tzOffset}`, {
+          method: 'DELETE',
+          body: JSON.stringify({ sessionIds: sessionIdsToRemove }),
+        });
+
+        // 2. Authoritative overwrite of state on cloud
         const res = await apiFetch('/api/state', {
           method: 'PUT',
           body: JSON.stringify({ state: next, overwrite: true }),

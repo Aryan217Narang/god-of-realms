@@ -87,11 +87,29 @@ router.delete('/sessions/today', requireAuth, async (req: AuthenticatedRequest, 
 
     const todayStr = new Date().toISOString().slice(0, 10);
     const clientDate = typeof req.query.date === 'string' && req.query.date ? req.query.date : null;
+    const tzOffset = req.query.tzOffset ? parseInt(req.query.tzOffset as string, 10) : null;
+    const sessionIdsToDelete = new Set(
+      Array.isArray(req.body?.sessionIds) ? req.body.sessionIds : []
+    );
+
     const filteredSessions = (currentState.sessions || []).filter((s: any) => {
       if (!s || !s.startTime) return false;
+      // 1. Direct match by session ID
+      if (s.id && sessionIdsToDelete.has(s.id)) {
+        return false;
+      }
+      // 2. Exact UTC date match
       const iso = s.startTime.slice(0, 10);
       if (iso === todayStr || (clientDate && iso === clientDate)) {
         return false;
+      }
+      // 3. Timezone-aware date match
+      if (tzOffset !== null && !isNaN(tzOffset)) {
+        try {
+          const sessionLocal = new Date(new Date(s.startTime).getTime() - tzOffset * 60000);
+          const sessionLocalDate = sessionLocal.toISOString().slice(0, 10);
+          if (clientDate && sessionLocalDate === clientDate) return false;
+        } catch {}
       }
       return true;
     });
@@ -113,7 +131,7 @@ router.delete('/sessions/today', requireAuth, async (req: AuthenticatedRequest, 
     };
 
     await saveUserState(req.userId!, updatedState);
-    console.log(`🗑️ Cleared today's study sessions in cloud for user ${req.userId}.`);
+    console.log(`🗑️ Cleared today's study sessions in cloud for user ${req.userId}. Removed count: ${(currentState.sessions || []).length - filteredSessions.length}`);
     res.json({ success: true, state: updatedState });
   } catch (err: any) {
     console.error('Delete today sessions error:', err);
