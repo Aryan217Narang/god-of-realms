@@ -271,8 +271,8 @@ export function getDailyStudyData(sessions: StudySession[], days: number): { dat
     const dateStr = d.toISOString().slice(0, 10);
     const label = i === 0 ? 'Today' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const daySessions = i === 0
-      ? sessions.filter(s => s.completed && (isSessionToday(s) || s.startTime.slice(0, 10) === dateStr))
-      : sessions.filter(s => s.completed && s.startTime.slice(0, 10) === dateStr);
+      ? sessions.filter(s => s.completed && isSessionToday(s))
+      : sessions.filter(s => s.completed && !isSessionToday(s) && s.startTime.slice(0, 10) === dateStr);
     const bySubject: Record<string, number> = { daa: 0, os: 0, nosql: 0, hda_cognitive: 0, gv: 0 };
     daySessions.forEach(s => { bySubject[s.subjectId] = (bySubject[s.subjectId] || 0) + s.durationMinutes; });
     result.push({ date: dateStr, label, total: daySessions.reduce((sum, s) => sum + s.durationMinutes, 0), bySubject: bySubject as Record<SubjectId, number> });

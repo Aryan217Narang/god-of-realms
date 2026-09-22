@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import type { AppState, SubjectId } from '../types';
 import {
   getDailyStudyData, getTotalMinutesForPeriod,
-  getSubjectMinutesForPeriod, formatTime, calculateStreak
+  getSubjectMinutesForPeriod, formatTime, calculateStreak,
+  isSessionToday, todayDateString
 } from '../utils/gameLogic';
 import { AncientJournalPanel } from '../components/journal/AncientJournalPanel';
 import { RuneStatTablet } from '../components/journal/RuneStatTablet';
@@ -64,9 +65,11 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
   const dailyData = getDailyStudyData(sessions, period);
 
   // Helper to extract minutes for a specific ISO date (YYYY-MM-DD)
-  const getSubjectMinutesForDate = (dateStr: string, subjectId: SubjectId): number => {
+  const getSubjectMinutesForDate = (dateStr: string, subjectId: SubjectId, label?: string | null): number => {
+    const isToday = label === 'Today' || dateStr === todayDateString();
     return sessions
-      .filter(s => s.completed && s.subjectId === subjectId && s.startTime.slice(0, 10) === dateStr)
+      .filter(s => s.completed && s.subjectId === subjectId)
+      .filter(s => isToday ? isSessionToday(s) : (!isSessionToday(s) && s.startTime.slice(0, 10) === dateStr))
       .reduce((sum, s) => sum + s.durationMinutes, 0);
   };
 
@@ -74,7 +77,7 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
   const subjectDistribution = SUBJECT_IDS.map(id => {
     let mins = 0;
     if (selectedBarDate) {
-      mins = getSubjectMinutesForDate(selectedBarDate, id);
+      mins = getSubjectMinutesForDate(selectedBarDate, id, selectedBarLabel);
     } else if (piePeriod === 'today') {
       mins = getSubjectMinutesForPeriod(sessions, id, 'today');
     } else if (piePeriod === '7d') {
@@ -99,7 +102,7 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
   const allSubjectTimes = SUBJECT_IDS.map(id => {
     let mins = 0;
     if (selectedBarDate) {
-      mins = getSubjectMinutesForDate(selectedBarDate, id);
+      mins = getSubjectMinutesForDate(selectedBarDate, id, selectedBarLabel);
     } else if (piePeriod === 'today') {
       mins = getSubjectMinutesForPeriod(sessions, id, 'today');
     } else if (piePeriod === '7d') {
