@@ -50,38 +50,50 @@ export function calculateXpForSession(durationMinutes: number, completed: boolea
 // Time Utilities
 // ============================================================
 
+export function toLocalDateString(d: Date = new Date()): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function todayDateString(): string {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalDateString(new Date());
+}
+
+export function getSessionDate(s: { startTime?: string }): string {
+  if (!s || !s.startTime) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s.startTime)) {
+    return s.startTime;
+  }
+  try {
+    const d = new Date(s.startTime);
+    if (!isNaN(d.getTime())) {
+      return toLocalDateString(d);
+    }
+  } catch {}
+  return s.startTime.slice(0, 10);
 }
 
 /**
  * Checks if a study session belongs to "today".
- * Evaluates both UTC ISO date and user's local calendar day to prevent
- * timezone boundary discrepancies (e.g. UTC vs IST/PST/EST).
+ * Evaluates the user's local calendar day and midnight boundary.
  */
 export function isSessionToday(s: { startTime?: string }): boolean {
   if (!s || !s.startTime) return false;
   const now = new Date();
-  const utcToday = now.toISOString().slice(0, 10);
-  const sessionUtc = s.startTime.slice(0, 10);
+  const todayStr = toLocalDateString(now);
+  const sessionDateStr = getSessionDate(s);
 
-  // 1. Exact match on UTC date
-  if (sessionUtc === utcToday) return true;
+  // 1. Exact match on local calendar date
+  if (sessionDateStr === todayStr) return true;
 
-  // 2. Exact match on local calendar date
+  // 2. Fallback: started after today's local midnight
   try {
     const d = new Date(s.startTime);
     if (!isNaN(d.getTime())) {
-      if (
-        d.getFullYear() === now.getFullYear() &&
-        d.getMonth() === now.getMonth() &&
-        d.getDate() === now.getDate()
-      ) {
-        return true;
-      }
-      // 3. Fallback: started after today's local midnight
       const startOfTodayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-      if (d.getTime() >= startOfTodayLocal && d.getTime() <= now.getTime()) {
+      if (d.getTime() >= startOfTodayLocal && d.getTime() <= now.getTime() + 60000) {
         return true;
       }
     }
@@ -171,11 +183,11 @@ export function calculateStreak(sessions: StudySession[], subjectId?: SubjectId)
   
   if (filtered.length === 0) return { current: 0, longest: 0 };
   
-  const days = new Set(filtered.map(s => s.startTime.slice(0, 10)));
+  const days = new Set(filtered.map(s => getSessionDate(s)));
   const sortedDays = Array.from(days).sort().reverse();
   
   const today = todayDateString();
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const yesterday = toLocalDateString(new Date(Date.now() - 86400000));
   
   // If no session today or yesterday, streak is 0
   if (sortedDays[0] !== today && sortedDays[0] !== yesterday) {
@@ -225,14 +237,14 @@ export function getSubjectMinutesForPeriod(
   period: 'today' | 'week' | 'month' | 'all'
 ): number {
   const now = new Date();
-  const weekAgo = new Date(now.getTime() - 7 * 86400000).toISOString().slice(0, 10);
-  const monthAgo = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
+  const weekAgo = toLocalDateString(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7));
+  const monthAgo = toLocalDateString(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30));
   
   return sessions
     .filter(s => s.subjectId === subjectId && s.completed)
     .filter(s => {
       if (period === 'today') return isSessionToday(s);
-      const d = s.startTime.slice(0, 10);
+      const d = getSessionDate(s);
       if (period === 'week') return isSessionToday(s) || d >= weekAgo;
       if (period === 'month') return isSessionToday(s) || d >= monthAgo;
       return true;
@@ -245,14 +257,14 @@ export function getTotalMinutesForPeriod(
   period: 'today' | 'week' | 'month' | 'all'
 ): number {
   const now = new Date();
-  const weekAgo = new Date(now.getTime() - 7 * 86400000).toISOString().slice(0, 10);
-  const monthAgo = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
+  const weekAgo = toLocalDateString(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7));
+  const monthAgo = toLocalDateString(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30));
   
   return sessions
     .filter(s => s.completed)
     .filter(s => {
       if (period === 'today') return isSessionToday(s);
-      const d = s.startTime.slice(0, 10);
+      const d = getSessionDate(s);
       if (period === 'week') return isSessionToday(s) || d >= weekAgo;
       if (period === 'month') return isSessionToday(s) || d >= monthAgo;
       return true;
@@ -266,13 +278,17 @@ export function getTotalMinutesForPeriod(
 
 export function getDailyStudyData(sessions: StudySession[], days: number): { date: string; label: string; total: number; bySubject: Record<SubjectId, number> }[] {
   const result = [];
+  const now = new Date();
+
   for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 86400000);
-    const dateStr = d.toISOString().slice(0, 10);
-    const label = i === 0 ? 'Today' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const dateStr = toLocalDateString(targetDate);
+    const label = i === 0 ? 'Today' : targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
     const daySessions = i === 0
       ? sessions.filter(s => s.completed && isSessionToday(s))
-      : sessions.filter(s => s.completed && !isSessionToday(s) && s.startTime.slice(0, 10) === dateStr);
+      : sessions.filter(s => s.completed && !isSessionToday(s) && getSessionDate(s) === dateStr);
+
     const bySubject: Record<string, number> = { daa: 0, os: 0, nosql: 0, hda_cognitive: 0, gv: 0 };
     daySessions.forEach(s => { bySubject[s.subjectId] = (bySubject[s.subjectId] || 0) + s.durationMinutes; });
     result.push({ date: dateStr, label, total: daySessions.reduce((sum, s) => sum + s.durationMinutes, 0), bySubject: bySubject as Record<SubjectId, number> });
