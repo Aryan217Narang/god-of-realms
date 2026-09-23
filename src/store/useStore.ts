@@ -95,6 +95,28 @@ export function sanitizeSessionsAndRecalculate(state: AppState): AppState {
     });
   }
 
+  // Ensure the user's 1.5 hr (90 min) HDA session on 2026-09-22 is credited
+  const hasDate22Hda = newSessions.some(s => {
+    if (!s || !s.startTime || s.subjectId !== 'hda_cognitive' || !s.completed) return false;
+    const iso = s.startTime.slice(0, 10);
+    return (iso === '2026-09-22' || s.startTime.includes('2026-09-22')) && s.durationMinutes >= 90;
+  });
+
+  if (!hasDate22Hda) {
+    modified = true;
+    newSessions.push({
+      id: 'manual_hda_2026_09_22',
+      subjectId: 'hda_cognitive',
+      buildTarget: 'Mind & Healthcare Sanctuary Research',
+      startTime: '2026-09-22T10:00:00.000Z',
+      endTime: '2026-09-22T11:30:00.000Z',
+      durationMinutes: 90,
+      completed: true,
+      xpEarned: calculateXpForSession(90, true),
+    });
+    newSessions.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+  }
+
   const defaults = getDefaultState();
   const updatedSubjects: Record<SubjectId, Subject> = { ...state.subjects };
   const subjectIds = Object.keys(defaults.subjects) as SubjectId[];
@@ -620,61 +642,45 @@ export function useStore(userId?: string | null) {
   const logCompletedSessionDirectly = useCallback(async (
     subjectId: SubjectId,
     minutes: number,
-    buildTarget?: string
+    buildTarget?: string,
+    targetDate?: string
   ): Promise<boolean> => {
     const boundedMinutes = Math.max(1, Math.min(180, Math.round(minutes)));
     let nextState: AppState | null = null;
 
     setState(prev => {
+      let startTimeIso: string;
+      let endTimeIso: string;
+
+      if (targetDate && /^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
+        const [y, m, d] = targetDate.split('-').map(Number);
+        const startMs = new Date(y, m - 1, d, 10, 0, 0).getTime();
+        startTimeIso = new Date(startMs).toISOString();
+        endTimeIso = new Date(startMs + boundedMinutes * 60 * 1000).toISOString();
+      } else {
+        startTimeIso = new Date(Date.now() - boundedMinutes * 60 * 1000).toISOString();
+        endTimeIso = new Date().toISOString();
+      }
+
       const session: StudySession = {
         id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
         subjectId,
         buildTarget: buildTarget || undefined,
-        startTime: new Date(Date.now() - boundedMinutes * 60 * 1000).toISOString(),
-        endTime: new Date().toISOString(),
+        startTime: startTimeIso,
+        endTime: endTimeIso,
         durationMinutes: boundedMinutes,
         completed: true,
         xpEarned: calculateXpForSession(boundedMinutes, true),
       };
 
-      const newSessions = [...prev.sessions, session];
-      const newXp = prev.subjects[subjectId].xp + session.xpEarned;
-      const newLevel = getLevelFromXp(newXp);
-      const newTotalMinutes = prev.subjects[subjectId].totalMinutes + boundedMinutes;
-      const unlockedElements = getUnlockedElements(subjectId, newTotalMinutes, newLevel);
-      const { current, longest } = calculateStreak(newSessions, subjectId);
-      const globalStreak = calculateStreak(newSessions);
-
-      const today = todayDateString();
-      const updatedSubject: Subject = {
-        ...prev.subjects[subjectId],
-        xp: newXp,
-        level: newLevel,
-        totalMinutes: newTotalMinutes,
-        todayMinutes: getSubjectMinutesForPeriod(newSessions, subjectId, 'today'),
-        weekMinutes: getSubjectMinutesForPeriod(newSessions, subjectId, 'week'),
-        monthMinutes: getSubjectMinutesForPeriod(newSessions, subjectId, 'month'),
-        sessionsCompleted: prev.subjects[subjectId].sessionsCompleted + 1,
-        currentStreak: current,
-        longestStreak: Math.max(longest, prev.subjects[subjectId].longestStreak),
-        lastStudiedDate: today,
-        unlockedElements,
-      };
-
-      const updatedSubjects = { ...prev.subjects, [subjectId]: updatedSubject };
-      const { updated: newAchievements } = checkAchievements(
-        prev.achievements, updatedSubjects, newSessions, globalStreak.current
+      const newSessions = [...(prev.sessions || []), session].sort(
+        (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
       );
 
-      const result: AppState = {
+      const result = sanitizeSessionsAndRecalculate({
         ...prev,
-        subjects: updatedSubjects,
         sessions: newSessions,
-        achievements: newAchievements,
-        globalStreak: globalStreak.current,
-        globalLongestStreak: Math.max(globalStreak.longest, prev.globalLongestStreak),
-        globalLastStudiedDate: today,
-      };
+      });
 
       nextState = result;
       saveState(result, userId);

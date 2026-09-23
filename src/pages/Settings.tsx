@@ -2,14 +2,14 @@ import React, { useState, useRef } from 'react';
 import type { AppState, SubjectId, TimeFormat } from '../types';
 import { AncientJournalPanel } from '../components/journal/AncientJournalPanel';
 import { Volume2, VolumeX, Sun, Moon, Download, Upload, Sparkles, Sliders, BookOpen, Clock, Cloud, CloudUpload, CloudDownload, Trash2, RotateCcw, AlertTriangle } from 'lucide-react';
-import { getTotalMinutesForPeriod, formatTime } from '../utils/gameLogic';
+import { getTotalMinutesForPeriod, formatTime, todayDateString } from '../utils/gameLogic';
 
 interface SettingsProps {
   state: AppState;
   onUpdateSettings: (updates: Partial<AppState['settings']>) => void;
   onResetData?: () => void;
   onClearToday?: () => Promise<boolean> | void;
-  onLogSessionDirectly?: (subjectId: SubjectId, minutes: number, buildTarget?: string) => Promise<boolean>;
+  onLogSessionDirectly?: (subjectId: SubjectId, minutes: number, buildTarget?: string, targetDate?: string) => Promise<boolean>;
   onExportData: () => string;
   onImportData: (json: string) => boolean;
   cloudStatus?: 'connected' | 'syncing' | 'offline' | 'local';
@@ -37,6 +37,7 @@ export const Settings: React.FC<SettingsProps> = ({
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [manualSubject, setManualSubject] = useState<SubjectId>('nosql');
   const [manualMinutes, setManualMinutes] = useState<number>(105);
+  const [manualDate, setManualDate] = useState<string>(() => todayDateString());
   const [manualProject, setManualProject] = useState<string>('Restoring Neon Data Spires');
   const [isLoggingManual, setIsLoggingManual] = useState<boolean>(false);
   const [manualLogMsg, setManualLogMsg] = useState<string | null>(null);
@@ -471,7 +472,7 @@ export const Settings: React.FC<SettingsProps> = ({
                   Instantly credit your study time directly to local storage and sync to the cloud database.
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 mb-3">
                   <div>
                     <label className="block text-[10px] font-pixel text-slate-700 font-bold mb-1">
                       Realm
@@ -487,6 +488,18 @@ export const Settings: React.FC<SettingsProps> = ({
                         </option>
                       ))}
                     </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-pixel text-slate-700 font-bold mb-1">
+                      Study Date
+                    </label>
+                    <input
+                      type="date"
+                      value={manualDate}
+                      onChange={e => setManualDate(e.target.value)}
+                      className="w-full bg-white border border-pink-300 rounded px-2 py-1.5 text-xs font-mono text-slate-900"
+                    />
                   </div>
 
                   <div>
@@ -556,10 +569,10 @@ export const Settings: React.FC<SettingsProps> = ({
                     onClick={async () => {
                       setIsLoggingManual(true);
                       try {
-                        const ok = await onLogSessionDirectly(manualSubject, manualMinutes, manualProject);
+                        const ok = await onLogSessionDirectly(manualSubject, manualMinutes, manualProject, manualDate);
                         setManualLogMsg(
                           ok
-                            ? `✓ Successfully credited ${manualMinutes}m to ${state.subjects[manualSubject]?.shortName} and uploaded to cloud database!`
+                            ? `✓ Successfully credited ${manualMinutes}m (${(manualMinutes / 60).toFixed(1)}h) on ${manualDate} to ${state.subjects[manualSubject]?.shortName} and uploaded to cloud!`
                             : `✓ Credited ${manualMinutes}m locally (cloud offline).`
                         );
                         setTimeout(() => setManualLogMsg(null), 5000);
@@ -570,7 +583,7 @@ export const Settings: React.FC<SettingsProps> = ({
                     className="pixel-btn pixel-btn-green py-1.5 px-3 text-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>{isLoggingManual ? 'Recording & Uplinking...' : `Log ${manualMinutes}m & Sync to Cloud`}</span>
+                    <span>{isLoggingManual ? 'Recording & Uplinking...' : `Log ${manualMinutes}m for ${manualDate} & Sync`}</span>
                   </button>
                 </div>
 
