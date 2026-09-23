@@ -4,7 +4,6 @@ import {
   getDefaultState, getLevelFromXp, calculateXpForSession,
   getUnlockedElements, calculateStreak, checkAchievements,
   getSubjectMinutesForPeriod, todayDateString, isSessionToday,
-  getSessionDate,
 } from '../utils/gameLogic';
 import { apiFetch } from '../services/apiClient';
 
@@ -97,40 +96,25 @@ export function sanitizeSessionsAndRecalculate(state: AppState): AppState {
   }
 
   // Ensure the user's 1.5 hr (90 min) HDA session on 2026-09-22 is credited
-  const customDate22Hda = newSessions.filter(s => {
+  const hasDate22Hda = newSessions.some(s => {
     if (!s || !s.startTime || s.subjectId !== 'hda_cognitive' || !s.completed) return false;
-    if (s.id === 'manual_hda_2026_09_22') return false;
-    const iso = getSessionDate(s);
-    return (iso === '2026-09-22' || s.startTime.slice(0, 10) === '2026-09-22') && s.durationMinutes >= 90;
+    const iso = s.startTime.slice(0, 10);
+    return (iso === '2026-09-22' || s.startTime.includes('2026-09-22')) && s.durationMinutes >= 90;
   });
 
-  if (customDate22Hda.length > 0) {
-    const withoutPlaceholder = newSessions.filter(s => s.id !== 'manual_hda_2026_09_22');
-    if (withoutPlaceholder.length !== newSessions.length) {
-      newSessions = withoutPlaceholder;
-      modified = true;
-    }
-  } else {
-    const hasAnyDate22Hda = newSessions.some(s => {
-      if (!s || !s.startTime || s.subjectId !== 'hda_cognitive' || !s.completed) return false;
-      const iso = getSessionDate(s);
-      return (iso === '2026-09-22' || s.startTime.slice(0, 10) === '2026-09-22') && s.durationMinutes >= 90;
+  if (!hasDate22Hda) {
+    modified = true;
+    newSessions.push({
+      id: 'manual_hda_2026_09_22',
+      subjectId: 'hda_cognitive',
+      buildTarget: 'Mind & Healthcare Sanctuary Research',
+      startTime: '2026-09-22T10:00:00.000Z',
+      endTime: '2026-09-22T11:30:00.000Z',
+      durationMinutes: 90,
+      completed: true,
+      xpEarned: calculateXpForSession(90, true),
     });
-
-    if (!hasAnyDate22Hda) {
-      modified = true;
-      newSessions.push({
-        id: 'manual_hda_2026_09_22',
-        subjectId: 'hda_cognitive',
-        buildTarget: 'Mind & Healthcare Sanctuary Research',
-        startTime: '2026-09-22T10:00:00.000Z',
-        endTime: '2026-09-22T11:30:00.000Z',
-        durationMinutes: 90,
-        completed: true,
-        xpEarned: calculateXpForSession(90, true),
-      });
-      newSessions.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-    }
+    newSessions.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   }
 
   const defaults = getDefaultState();
@@ -670,7 +654,7 @@ export function useStore(userId?: string | null) {
 
       if (targetDate && /^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
         const [y, m, d] = targetDate.split('-').map(Number);
-        const startMs = new Date(y, m - 1, d, 12, 0, 0).getTime();
+        const startMs = new Date(y, m - 1, d, 10, 0, 0).getTime();
         startTimeIso = new Date(startMs).toISOString();
         endTimeIso = new Date(startMs + boundedMinutes * 60 * 1000).toISOString();
       } else {
@@ -869,7 +853,7 @@ export function useStore(userId?: string | null) {
     if (userId) {
       setCloudStatus('syncing');
       try {
-        const clientDate = todayDateString();
+        const clientDate = new Date().toISOString().slice(0, 10);
         const tzOffset = new Date().getTimezoneOffset();
 
         // 1. Purge matching session IDs and date in cloud database

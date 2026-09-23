@@ -3,7 +3,7 @@ import type { AppState, SubjectId } from '../types';
 import {
   getDailyStudyData, getTotalMinutesForPeriod,
   getSubjectMinutesForPeriod, formatTime, calculateStreak,
-  isSessionToday, todayDateString, getSessionDate
+  isSessionToday, todayDateString
 } from '../utils/gameLogic';
 import { AncientJournalPanel } from '../components/journal/AncientJournalPanel';
 import { RuneStatTablet } from '../components/journal/RuneStatTablet';
@@ -52,7 +52,7 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
   const totalSessions = sessions.filter(s => s.completed).length;
   const globalStreak = calculateStreak(sessions);
 
-  const uniqueDays = new Set(sessions.filter(s => s.completed).map(s => getSessionDate(s))).size;
+  const uniqueDays = new Set(sessions.filter(s => s.completed).map(s => s.startTime.slice(0, 10))).size;
   const avgDaily = uniqueDays > 0 ? allMin / uniqueDays : 0;
 
   // Most studied
@@ -69,7 +69,7 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
     const isToday = label === 'Today' || dateStr === todayDateString();
     return sessions
       .filter(s => s.completed && s.subjectId === subjectId)
-      .filter(s => isToday ? isSessionToday(s) : (!isSessionToday(s) && getSessionDate(s) === dateStr))
+      .filter(s => isToday ? isSessionToday(s) : (!isSessionToday(s) && s.startTime.slice(0, 10) === dateStr))
       .reduce((sum, s) => sum + s.durationMinutes, 0);
   };
 

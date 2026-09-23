@@ -98,20 +98,18 @@ router.delete('/sessions/today', requireAuth, async (req: AuthenticatedRequest, 
       if (s.id && sessionIdsToDelete.has(s.id)) {
         return false;
       }
-      // 2. Client-provided local date match (timezone-aware)
+      // 2. Exact UTC date match
       const iso = s.startTime.slice(0, 10);
-      if (clientDate) {
-        if (iso === clientDate) return false;
-        if (tzOffset !== null && !isNaN(tzOffset)) {
-          try {
-            const sessionLocal = new Date(new Date(s.startTime).getTime() - tzOffset * 60000);
-            const sessionLocalDate = sessionLocal.toISOString().slice(0, 10);
-            if (sessionLocalDate === clientDate) return false;
-          } catch {}
-        }
-      } else {
-        // Fallback only if no client date was provided
-        if (iso === todayStr) return false;
+      if (iso === todayStr || (clientDate && iso === clientDate)) {
+        return false;
+      }
+      // 3. Timezone-aware date match
+      if (tzOffset !== null && !isNaN(tzOffset)) {
+        try {
+          const sessionLocal = new Date(new Date(s.startTime).getTime() - tzOffset * 60000);
+          const sessionLocalDate = sessionLocal.toISOString().slice(0, 10);
+          if (clientDate && sessionLocalDate === clientDate) return false;
+        } catch {}
       }
       return true;
     });
