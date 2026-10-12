@@ -15,7 +15,6 @@ interface DashboardProps {
   onStartStudy: (subjectId: SubjectId) => void;
 }
 
-const SUBJECT_IDS: SubjectId[] = ['daa', 'os', 'nosql', 'hda_cognitive', 'gv'];
 
 const ADVENTURE_QUOTES = [
   'With every minute studied, an isometric world springs into lush life.',
@@ -188,9 +187,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onNavigate, onStart
         </button>
       </div>
 
-      {/* 5-Column Responsive Realm Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
-        {SUBJECT_IDS.map(id => (
+      {/* Responsive Realm Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5">
+        {(Object.keys(state.subjects) as SubjectId[]).map(id => (
           <RealmCard
             key={id}
             subject={state.subjects[id]}

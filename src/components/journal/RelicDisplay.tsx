@@ -27,7 +27,7 @@ export const RelicDisplay: React.FC<RelicDisplayProps> = ({
     hero: { box: 110, svg: 90 },
   }[size];
 
-  const relicInfo = {
+  const relicMap: Record<string, { name: string; title: string; color: string; aura: string; border: string; lore: string }> = {
     daa: {
       name: 'Algorithmic Axe',
       title: 'Axe of Recursive Truth',
@@ -68,7 +68,16 @@ export const RelicDisplay: React.FC<RelicDisplayProps> = ({
       border: '#c2410c',
       lore: 'A celestial golden spear hovering above an ancient celestial compass. Projects radiant energy bridges to link floating sky sanctuaries into a unified network.',
     },
-  }[subjectId];
+  };
+
+  const relicInfo = relicMap[subjectId] || {
+    name: 'Arcane Crystal Core',
+    title: 'Core of Scholar Mastery',
+    color: '#ec4899',
+    aura: 'rgba(236, 72, 153, 0.4)',
+    border: '#be185d',
+    lore: 'A luminous levitating gemstone radiating deep scholarly concentration and relentless discipline.',
+  };
 
   // SVG Pixel Relic Art Renderers
   const renderAxe = () => (
@@ -200,6 +209,26 @@ export const RelicDisplay: React.FC<RelicDisplayProps> = ({
     </svg>
   );
 
+  const renderArcaneOrb = () => (
+    <svg width={dim.svg} height={dim.svg} viewBox="0 0 48 48" fill="none">
+      <circle cx="24" cy="24" r="18" fill={relicInfo.aura} filter="blur(4px)" className="animate-pulse-glow" />
+      <rect x="16" y="38" width="16" height="5" rx="1.5" fill="#78350f" stroke="#d97706" strokeWidth="1" />
+      <line x1="20" y1="38" x2="28" y2="38" stroke="#fde047" strokeWidth="1.5" />
+      <polygon
+        points="24,10 35,22 24,34 13,22"
+        fill={relicInfo.color}
+        stroke="#ffffff"
+        strokeWidth="1.5"
+      />
+      <polygon
+        points="24,14 31,22 24,30 17,22"
+        fill="#ffffff"
+        fillOpacity="0.3"
+      />
+      <circle cx="24" cy="22" r="3" fill="#ffffff" />
+    </svg>
+  );
+
   const getSvg = () => {
     switch (subjectId) {
       case 'daa': return renderAxe();
@@ -207,6 +236,7 @@ export const RelicDisplay: React.FC<RelicDisplayProps> = ({
       case 'nosql': return renderBlade();
       case 'hda_cognitive': return renderStaff();
       case 'gv': return renderSpear();
+      default: return renderArcaneOrb();
     }
   };
 

@@ -20,22 +20,6 @@ interface StatsProps {
   state: AppState;
 }
 
-const SUBJECT_IDS: SubjectId[] = ['daa', 'os', 'nosql', 'hda_cognitive', 'gv'];
-const COLORS: Record<SubjectId, string> = {
-  daa: '#4ade80',
-  os: '#67e8f9',
-  nosql: '#f472b6',
-  hda_cognitive: '#c084fc',
-  gv: '#fb923c',
-};
-const LABELS: Record<SubjectId, string> = {
-  daa: 'Tree Realm (DAA)',
-  os: 'Mountain Realm (OS)',
-  nosql: 'City Ruins (NoSQL)',
-  hda_cognitive: 'Sanctuary (HDA & CI)',
-  gv: 'Floating Isles (GV)',
-};
-
 export const Statistics: React.FC<StatsProps> = ({ state }) => {
   const [period, setPeriod] = useState<7 | 30>(7);
   const [piePeriod, setPiePeriod] = useState<'today' | '7d' | '30d' | 'all'>('today');
@@ -44,6 +28,15 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
 
   const sessions = state.sessions;
   const timeFormat = state.settings.timeFormat || 'hours_decimal';
+  const subjectIds = Object.keys(state.subjects) as SubjectId[];
+
+  const getSubjectColor = (id: SubjectId): string => {
+    return state.subjects[id]?.color || '#f472b6';
+  };
+
+  const getSubjectLabel = (id: SubjectId): string => {
+    return state.subjects[id]?.realmName || state.subjects[id]?.name || String(id);
+  };
 
   const todayMin = getTotalMinutesForPeriod(sessions, 'today');
   const weekMin = getTotalMinutesForPeriod(sessions, 'week');
@@ -56,13 +49,13 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
   const avgDaily = uniqueDays > 0 ? allMin / uniqueDays : 0;
 
   // Most studied
-  const mostStudied = SUBJECT_IDS.reduce((best, id) => {
+  const mostStudied = subjectIds.reduce((best, id) => {
     const m = getSubjectMinutesForPeriod(sessions, id, 'all');
     return m > (best.minutes || 0) ? { id, minutes: m } : best;
-  }, { id: 'daa' as SubjectId, minutes: 0 });
+  }, { id: (subjectIds[0] || 'daa') as SubjectId, minutes: 0 });
 
   // Daily chart data
-  const dailyData = getDailyStudyData(sessions, period);
+  const dailyData = getDailyStudyData(sessions, period, subjectIds);
 
   // Helper to extract minutes for a specific ISO date (YYYY-MM-DD)
   const getSubjectMinutesForDate = (dateStr: string, subjectId: SubjectId, label?: string | null): number => {
@@ -74,7 +67,8 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
   };
 
   // Subject distribution for Pie Chart (Supports clicked bar date, Today, 7 Days, 30 Days, All Time)
-  const subjectDistribution = SUBJECT_IDS.map(id => {
+  const subjectDistribution = subjectIds.map(id => {
+    const sub = state.subjects[id];
     let mins = 0;
     if (selectedBarDate) {
       mins = getSubjectMinutesForDate(selectedBarDate, id, selectedBarLabel);
@@ -89,17 +83,18 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
     }
     return {
       id,
-      name: LABELS[id],
-      shortName: state.subjects[id].shortName,
+      name: getSubjectLabel(id),
+      shortName: sub?.shortName || id,
       value: mins,
-      color: COLORS[id],
+      color: getSubjectColor(id),
     };
   }).filter(d => d.value > 0);
 
   const totalPieMinutes = subjectDistribution.reduce((sum, d) => sum + d.value, 0);
 
   // Subject study times for the active inspection (selectedBarDate or piePeriod)
-  const allSubjectTimes = SUBJECT_IDS.map(id => {
+  const allSubjectTimes = subjectIds.map(id => {
+    const sub = state.subjects[id];
     let mins = 0;
     if (selectedBarDate) {
       mins = getSubjectMinutesForDate(selectedBarDate, id, selectedBarLabel);
@@ -114,28 +109,31 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
     }
     return {
       id,
-      name: LABELS[id],
-      shortName: state.subjects[id].shortName,
-      realmName: state.subjects[id].realmName,
-      level: state.subjects[id].level,
-      elements: state.subjects[id].unlockedElements.length,
+      name: getSubjectLabel(id),
+      shortName: sub?.shortName || id,
+      realmName: sub?.realmName || sub?.name || id,
+      level: sub?.level || 1,
+      elements: sub?.unlockedElements?.length || 0,
       minutes: mins,
-      color: COLORS[id],
+      color: getSubjectColor(id),
     };
   });
 
   const totalPeriodMinutes = allSubjectTimes.reduce((sum, s) => sum + s.minutes, 0);
 
   // Realm architectural restoration progress (purely levels, monuments, world development - time removed)
-  const realmProgress = SUBJECT_IDS.map(id => ({
-    id,
-    name: LABELS[id],
-    shortName: state.subjects[id].shortName,
-    realmName: state.subjects[id].realmName,
-    level: state.subjects[id].level,
-    elements: state.subjects[id].unlockedElements.length,
-    color: COLORS[id],
-  }));
+  const realmProgress = subjectIds.map(id => {
+    const sub = state.subjects[id];
+    return {
+      id,
+      name: getSubjectLabel(id),
+      shortName: sub?.shortName || id,
+      realmName: sub?.realmName || sub?.name || id,
+      level: sub?.level || 1,
+      elements: sub?.unlockedElements?.length || 0,
+      color: getSubjectColor(id),
+    };
+  });
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -654,7 +652,7 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
 
           <ResponsiveContainer width="100%" height={240}>
             <BarChart
-              data={getDailyStudyData(sessions, 7)}
+              data={getDailyStudyData(sessions, 7, subjectIds)}
               margin={{ top: 10, right: 10, bottom: 5, left: -15 }}
               barSize={26}
               maxBarSize={30}
@@ -667,8 +665,16 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
               />
               <Tooltip content={<CustomTooltip />} />
               <Legend formatter={(v) => <span style={{ fontSize: 11, fontFamily: 'Consolas, "Courier New", monospace', color: '#9d174d' }}>{v}</span>} />
-              {SUBJECT_IDS.map(id => (
-                <Bar key={id} dataKey={`bySubject.${id}`} name={LABELS[id]} stackId="a" fill={COLORS[id]} barSize={26} maxBarSize={30} />
+              {subjectIds.map(id => (
+                <Bar
+                  key={id}
+                  dataKey={`bySubject.${id}`}
+                  name={getSubjectLabel(id)}
+                  stackId="a"
+                  fill={getSubjectColor(id)}
+                  barSize={26}
+                  maxBarSize={30}
+                />
               ))}
             </BarChart>
           </ResponsiveContainer>
@@ -687,11 +693,11 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
                 ISOMETRIC REALM ARCHITECTURE & RESTORATION
               </h3>
               <p className="text-xs font-pixel text-slate-600 mt-0.5">
-                World restoration levels and sacred monument awakenings across the five realms
+                World restoration levels and sacred monument awakenings across the {subjectIds.length} realms
               </p>
             </div>
             <span className="text-[11px] font-pixel text-pink-600 bg-pink-50 px-3 py-1 rounded border border-pink-200 font-bold self-start sm:self-auto">
-              5 Mythic Domains
+              {subjectIds.length} Mythic Domains
             </span>
           </div>
 

@@ -2,7 +2,10 @@
 // Core TypeScript Interfaces for God of Realms
 // ============================================================
 
-export type SubjectId = 'daa' | 'os' | 'nosql' | 'hda_cognitive' | 'gv';
+export type BuiltinSubjectId = 'daa' | 'os' | 'nosql' | 'hda_cognitive' | 'gv';
+export type SubjectId = BuiltinSubjectId | (string & {});
+
+export type RealmThemeType = 'forest' | 'mountain' | 'ancient-city' | 'sanctuary' | 'floating-islands';
 
 export interface Subject {
   id: SubjectId;
@@ -10,7 +13,7 @@ export interface Subject {
   shortName: string;
   realmName: string;
   description: string;
-  theme: 'forest' | 'mountain' | 'ancient-city' | 'sanctuary' | 'floating-islands';
+  theme: RealmThemeType;
   relic: string;
   relicLore: string;
   color: string;
@@ -28,6 +31,7 @@ export interface Subject {
   lastStudiedDate: string | null;
   unlockedElements: string[];
   studyGoalMinutes: number;
+  isCustom?: boolean;
 }
 
 export interface StudySession {
@@ -119,3 +123,18 @@ export interface DailyStats {
   totalMinutes: number;
   sessionsBySubject: Record<SubjectId, number>;
 }
+
+export interface CreateSubjectInput {
+  name: string;
+  shortName: string;
+  realmName?: string;
+  description?: string;
+  theme?: RealmThemeType;
+  relic?: string;
+  relicLore?: string;
+  color?: string;
+  glowColor?: string;
+  darkColor?: string;
+  studyGoalMinutes?: number;
+}
+

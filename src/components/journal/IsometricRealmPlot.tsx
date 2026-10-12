@@ -3,6 +3,7 @@ import type { SubjectId } from '../../types';
 
 interface IsometricRealmPlotProps {
   subjectId: SubjectId;
+  theme?: 'forest' | 'mountain' | 'ancient-city' | 'sanctuary' | 'floating-islands';
   level?: number;
   totalMinutes?: number;
   width?: number;
@@ -14,6 +15,7 @@ interface IsometricRealmPlotProps {
 
 export const IsometricRealmPlot: React.FC<IsometricRealmPlotProps> = ({
   subjectId,
+  theme,
   level = 1,
   totalMinutes = 0,
   width = 360,
@@ -517,10 +519,26 @@ export const IsometricRealmPlot: React.FC<IsometricRealmPlotProps> = ({
         }
       };
 
+      // Determine effective visual plot archetype
+      let plotType: 'daa' | 'os' | 'nosql' | 'hda_cognitive' | 'gv' = 'daa';
+      if (subjectId === 'daa' || subjectId === 'os' || subjectId === 'nosql' || subjectId === 'hda_cognitive' || subjectId === 'gv') {
+        plotType = subjectId as any;
+      } else if (theme) {
+        if (theme === 'forest') plotType = 'daa';
+        else if (theme === 'mountain') plotType = 'os';
+        else if (theme === 'ancient-city') plotType = 'nosql';
+        else if (theme === 'sanctuary') plotType = 'hda_cognitive';
+        else if (theme === 'floating-islands') plotType = 'gv';
+      } else {
+        const hash = Array.from(String(subjectId)).reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+        const archetypes: Array<'daa' | 'os' | 'nosql' | 'hda_cognitive' | 'gv'> = ['daa', 'os', 'nosql', 'hda_cognitive', 'gv'];
+        plotType = archetypes[hash % archetypes.length];
+      }
+
       // ============================================================
       // 1. DAA: TREE REALM (RETAIN THE ORIGINAL ONE EXACTLY AS IS!)
       // ============================================================
-      if (subjectId === 'daa') {
+      if (plotType === 'daa') {
         ctx.fillStyle = 'rgba(244, 114, 182, 0.12)';
         ctx.beginPath();
         ctx.ellipse(originX, originY + tileH * 6.5, width * 0.44, height * 0.28, 0, 0, Math.PI * 2);
@@ -631,7 +649,7 @@ export const IsometricRealmPlot: React.FC<IsometricRealmPlotProps> = ({
       // ============================================================
       // 2. OS: MOUNTAIN REALM (VOXEL CANYON & TWIN PEAKS - IMAGE 2 INSPIRED)
       // ============================================================
-      else if (subjectId === 'os') {
+      else if (plotType === 'os') {
         // Dramatic shadow
         ctx.fillStyle = 'rgba(147, 197, 253, 0.18)';
         ctx.beginPath();
@@ -776,7 +794,7 @@ export const IsometricRealmPlot: React.FC<IsometricRealmPlotProps> = ({
       // ============================================================
       // 3. NOSQL: SUNKEN RUINS CITADEL, PERISTYLE COLONNADE & VAULT
       // ============================================================
-      else if (subjectId === 'nosql') {
+      else if (plotType === 'nosql') {
         // Deep magenta ancient ruins shadow
         ctx.fillStyle = 'rgba(217, 70, 239, 0.18)';
         ctx.beginPath();
@@ -916,7 +934,7 @@ export const IsometricRealmPlot: React.FC<IsometricRealmPlotProps> = ({
       // ============================================================
       // 4. HDA & COGNITIVE: STEPPED ZEN WATER AMPHITHEATER & PAGODA
       // ============================================================
-      else if (subjectId === 'hda_cognitive') {
+      else if (plotType === 'hda_cognitive') {
         // Soft violet reflection shadow
         ctx.fillStyle = 'rgba(192, 132, 252, 0.18)';
         ctx.beginPath();
@@ -1053,7 +1071,7 @@ export const IsometricRealmPlot: React.FC<IsometricRealmPlotProps> = ({
       // ============================================================
       // 5. GV: TRUE MULTI-ISLAND SKY ARCHIPELAGO & SKY BRIDGES
       // ============================================================
-      else if (subjectId === 'gv') {
+      else if (plotType === 'gv') {
         // Deep sky void with billowing pastel clouds beneath islands
         const cloudDrift = Math.sin(t * 1.2) * 8;
         ctx.fillStyle = 'rgba(255, 255, 255, 0.78)';
@@ -1229,7 +1247,7 @@ export const IsometricRealmPlot: React.FC<IsometricRealmPlotProps> = ({
         cancelAnimationFrame(animRef.current);
       }
     };
-  }, [subjectId, level, totalMinutes, width, height, showRelic, animated]);
+  }, [subjectId, theme, level, totalMinutes, width, height, showRelic, animated]);
 
   return (
     <div className={`relative flex items-center justify-center ${className}`}>

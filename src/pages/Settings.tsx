@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
-import type { AppState, SubjectId, TimeFormat } from '../types';
+import type { AppState, SubjectId, TimeFormat, CreateSubjectInput, Subject, RealmThemeType } from '../types';
 import { AncientJournalPanel } from '../components/journal/AncientJournalPanel';
-import { Volume2, VolumeX, Sun, Moon, Download, Upload, Sparkles, Sliders, BookOpen, Clock, Cloud, CloudUpload, CloudDownload, Trash2, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Volume2, VolumeX, Sun, Moon, Download, Upload, Sparkles, Sliders, BookOpen, Clock, Cloud, CloudUpload, CloudDownload, Trash2, RotateCcw, AlertTriangle, Plus } from 'lucide-react';
 import { getTotalMinutesForPeriod, formatTime, todayDateString } from '../utils/gameLogic';
 
 interface SettingsProps {
@@ -10,6 +10,8 @@ interface SettingsProps {
   onResetData?: () => void;
   onClearToday?: () => Promise<boolean> | void;
   onLogSessionDirectly?: (subjectId: SubjectId, minutes: number, buildTarget?: string, targetDate?: string) => Promise<boolean>;
+  onAddSubject?: (input: CreateSubjectInput) => Promise<Subject | null>;
+  onDeleteSubject?: (subjectId: SubjectId) => Promise<boolean>;
   onExportData: () => string;
   onImportData: (json: string) => boolean;
   cloudStatus?: 'connected' | 'syncing' | 'offline' | 'local';
@@ -18,14 +20,14 @@ interface SettingsProps {
   user?: { id: string; username: string; email: string } | null;
 }
 
-const SUBJECT_IDS: SubjectId[] = ['daa', 'os', 'nosql', 'hda_cognitive', 'gv'];
-
 export const Settings: React.FC<SettingsProps> = ({
   state,
   onUpdateSettings,
   onResetData,
   onClearToday,
   onLogSessionDirectly,
+  onAddSubject,
+  onDeleteSubject,
   onExportData,
   onImportData,
   cloudStatus = 'local',
@@ -35,7 +37,7 @@ export const Settings: React.FC<SettingsProps> = ({
 }) => {
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
-  const [manualSubject, setManualSubject] = useState<SubjectId>('nosql');
+  const [manualSubject, setManualSubject] = useState<SubjectId>(() => (Object.keys(state.subjects)[0] || 'nosql') as SubjectId);
   const [manualMinutes, setManualMinutes] = useState<number>(105);
   const [manualDate, setManualDate] = useState<string>(() => todayDateString());
   const [manualProject, setManualProject] = useState<string>('Restoring Neon Data Spires');
@@ -44,6 +46,16 @@ export const Settings: React.FC<SettingsProps> = ({
   const [clearMsg, setClearMsg] = useState<string | null>(null);
   const [isClearing, setIsClearing] = useState<boolean>(false);
   const [confirmClearToday, setConfirmClearToday] = useState<boolean>(false);
+
+  // Construct New Realm state
+  const [newSubName, setNewSubName] = useState('');
+  const [newSubShort, setNewSubShort] = useState('');
+  const [newSubRealm, setNewSubRealm] = useState('');
+  const [newSubTheme, setNewSubTheme] = useState<RealmThemeType>('forest');
+  const [newSubColor, setNewSubColor] = useState('#22c55e');
+  const [newSubGoal, setNewSubGoal] = useState(60);
+  const [newSubMsg, setNewSubMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  const [isConstructingRealm, setIsConstructingRealm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const s = state.settings;
@@ -324,6 +336,213 @@ export const Settings: React.FC<SettingsProps> = ({
 
         {/* Right Column: Custom Realm Inscriptions & Eternal Archive */}
         <div className="space-y-8">
+          {/* Construct New Realm / Add Custom Subject */}
+          {onAddSubject && (
+            <AncientJournalPanel
+              variant="stone"
+              className="border-pink-300 shadow-[4px_4px_0px_#fbcfe8]"
+            >
+              <div className="mb-4 border-b border-pink-200 pb-3">
+                <div className="flex items-center gap-1.5 text-pink-600 mb-1">
+                  <Plus className="w-4 h-4 text-pink-500" />
+                  <span className="text-[10px] font-pixel uppercase font-bold tracking-wider">Awaken New Subject</span>
+                </div>
+                <h3 className="text-sm font-pixel-heading text-pink-950">
+                  CONSTRUCT NEW REALM (ADD SUBJECT)
+                </h3>
+                <p className="text-xs font-pixel text-slate-500">
+                  Awaken a new academic subject. Automatically integrated into charts, tables, timers, and monuments.
+                </p>
+              </div>
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!newSubName.trim() || !newSubShort.trim()) {
+                    setNewSubMsg({ text: 'Please enter both a Realm Title and Short Tag.', error: true });
+                    return;
+                  }
+                  setIsConstructingRealm(true);
+                  try {
+                    const res = await onAddSubject({
+                      name: newSubName.trim(),
+                      shortName: newSubShort.trim().toUpperCase(),
+                      realmName: newSubRealm.trim() || `${newSubName.trim()} Citadel`,
+                      theme: newSubTheme,
+                      color: newSubColor,
+                      studyGoalMinutes: newSubGoal,
+                    });
+                    if (res) {
+                      setNewSubMsg({
+                        text: `✓ Awakened "${res.name}" successfully! Available across all charts, tables and timers.`,
+                        error: false,
+                      });
+                      setNewSubName('');
+                      setNewSubShort('');
+                      setNewSubRealm('');
+                      setTimeout(() => setNewSubMsg(null), 5000);
+                    } else {
+                      setNewSubMsg({ text: 'Failed to construct realm.', error: true });
+                    }
+                  } catch (err: any) {
+                    setNewSubMsg({ text: err.message || 'Error constructing realm', error: true });
+                  } finally {
+                    setIsConstructingRealm(false);
+                  }
+                }}
+                className="space-y-3.5"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-pixel text-slate-700 font-bold mb-1">
+                      Subject / Course Name *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Deep Learning, French"
+                      value={newSubName}
+                      onChange={e => setNewSubName(e.target.value)}
+                      required
+                      className="w-full bg-white border-2 border-pink-300 rounded px-2.5 py-1.5 text-slate-900 font-pixel text-xs focus:border-pink-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-pixel text-slate-700 font-bold mb-1">
+                      Short Tag (2-5 Letters) *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. DL, FR, BIO"
+                      maxLength={8}
+                      value={newSubShort}
+                      onChange={e => setNewSubShort(e.target.value.toUpperCase())}
+                      required
+                      className="w-full bg-white border-2 border-pink-300 rounded px-2.5 py-1.5 text-slate-900 font-pixel text-xs uppercase focus:border-pink-500 focus:outline-none font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-pixel text-slate-700 font-bold mb-1">
+                      Realm Moniker (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Neural Citadel, Lexicon Valley"
+                      value={newSubRealm}
+                      onChange={e => setNewSubRealm(e.target.value)}
+                      className="w-full bg-white border-2 border-pink-300 rounded px-2.5 py-1.5 text-slate-900 font-pixel text-xs focus:border-pink-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-pixel text-slate-700 font-bold mb-1">
+                      Daily Study Goal
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min={10}
+                        max={360}
+                        step={5}
+                        value={newSubGoal}
+                        onChange={e => setNewSubGoal(Math.max(10, Math.min(360, Number(e.target.value))))}
+                        className="w-full bg-white border-2 border-pink-300 rounded px-2.5 py-1.5 text-slate-900 font-mono text-xs focus:border-pink-500 focus:outline-none"
+                      />
+                      <span className="text-[10px] font-pixel text-slate-500 font-bold whitespace-nowrap">min/day</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Theme Biome Selection */}
+                <div>
+                  <label className="block text-[10px] font-pixel text-slate-700 font-bold mb-1.5">
+                    Biome Landscape
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+                    {[
+                      { id: 'forest' as RealmThemeType, label: 'Forest', icon: '🌲' },
+                      { id: 'mountain' as RealmThemeType, label: 'Peak', icon: '⛰️' },
+                      { id: 'ancient-city' as RealmThemeType, label: 'Citadel', icon: '🏛️' },
+                      { id: 'sanctuary' as RealmThemeType, label: 'Sanctuary', icon: '🔮' },
+                      { id: 'floating-islands' as RealmThemeType, label: 'Aether', icon: '☁️' },
+                    ].map(b => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() => setNewSubTheme(b.id)}
+                        className={`p-1.5 rounded border text-center font-pixel text-[11px] flex flex-col items-center gap-0.5 cursor-pointer transition-all ${
+                          newSubTheme === b.id
+                            ? 'bg-pink-100 border-pink-500 text-pink-900 font-bold shadow-sm'
+                            : 'bg-white border-pink-200 text-slate-600 hover:bg-pink-50'
+                        }`}
+                      >
+                        <span className="text-sm">{b.icon}</span>
+                        <span>{b.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Color Scheme Picker */}
+                <div>
+                  <label className="block text-[10px] font-pixel text-slate-700 font-bold mb-1.5">
+                    Realm Beacon Hue
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {[
+                      '#22c55e', '#10b981', '#06b6d4', '#0284c7',
+                      '#6366f1', '#8b5cf6', '#d946ef', '#ec4899',
+                      '#f43f5e', '#ef4444', '#f59e0b', '#84cc16'
+                    ].map(col => (
+                      <button
+                        key={col}
+                        type="button"
+                        onClick={() => setNewSubColor(col)}
+                        style={{ backgroundColor: col }}
+                        className={`w-6 h-6 rounded-full border-2 transition-transform cursor-pointer ${
+                          newSubColor === col ? 'border-slate-900 scale-125 shadow' : 'border-white hover:scale-110'
+                        }`}
+                      />
+                    ))}
+                    <div className="flex items-center gap-1 ml-auto">
+                      <input
+                        type="color"
+                        value={newSubColor}
+                        onChange={e => setNewSubColor(e.target.value)}
+                        className="w-6 h-6 p-0 border border-pink-300 rounded cursor-pointer"
+                      />
+                      <span className="text-[10px] font-mono text-slate-600">{newSubColor}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isConstructingRealm}
+                    className="w-full pixel-btn pixel-btn-pink py-2 text-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>{isConstructingRealm ? 'Awakening Realm...' : 'Awaken & Inscribe New Realm'}</span>
+                  </button>
+                </div>
+
+                {newSubMsg && (
+                  <div
+                    className={`p-2 rounded text-xs font-pixel font-bold ${
+                      newSubMsg.error
+                        ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                        : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                    }`}
+                  >
+                    {newSubMsg.text}
+                  </div>
+                )}
+              </form>
+            </AncientJournalPanel>
+          )}
+
           {/* Custom Subject Inscriptions */}
           <AncientJournalPanel
             variant="stone"
@@ -339,43 +558,74 @@ export const Settings: React.FC<SettingsProps> = ({
             </div>
 
             <div className="space-y-3">
-              {SUBJECT_IDS.map(id => {
+              {(Object.keys(state.subjects) as SubjectId[]).map(id => {
                 const subject = state.subjects[id];
-                const override = s.subjectOverrides[id];
+                if (!subject) return null;
+                const override = s.subjectOverrides[id] || {};
+                const isCustom = subject.isCustom;
                 return (
                   <div
                     key={id}
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-[#fff0f5] p-2.5 rounded border border-pink-200 shadow-[2px_2px_0px_#fce7f3]"
+                    className="bg-[#fff0f5] p-2.5 rounded border border-pink-200 shadow-[2px_2px_0px_#fce7f3] space-y-2"
                   >
-                    <div>
-                      <label className="block text-[10px] font-pixel text-slate-600 mb-1 flex items-center gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
                         <BookOpen className="w-3 h-3 text-pink-500" />
-                        <span style={{ color: subject.color }} className="font-bold">
+                        <span style={{ color: subject.color }} className="font-bold font-pixel text-xs">
                           {subject.shortName}
-                        </span>{' '}
-                        — Full Title
-                      </label>
-                      <input
-                        type="text"
-                        defaultValue={override.name || subject.name}
-                        onBlur={e => onUpdateSettings({
-                          subjectOverrides: { ...s.subjectOverrides, [id]: { ...override, name: e.target.value } }
-                        })}
-                        className="w-full bg-white border-2 border-pink-300 rounded px-2.5 py-1 text-slate-900 font-pixel text-xs focus:border-pink-500 focus:outline-none"
-                      />
+                        </span>
+                        <span className="text-[10px] font-pixel text-slate-500">
+                          ({subject.realmName})
+                        </span>
+                        {isCustom && (
+                          <span className="px-1.5 py-0.5 text-[9px] bg-purple-100 text-purple-700 rounded border border-purple-300 font-pixel font-bold">
+                            CUSTOM
+                          </span>
+                        )}
+                      </div>
+                      {isCustom && onDeleteSubject && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (window.confirm(`Dissolve and remove custom realm "${subject.name}"? Past study sessions will be kept in history.`)) {
+                              await onDeleteSubject(id);
+                            }
+                          }}
+                          className="text-rose-500 hover:text-rose-700 hover:bg-rose-100 p-1 rounded transition-colors text-[10px] font-pixel flex items-center gap-1 cursor-pointer"
+                          title="Delete Custom Realm"
+                        >
+                          <Trash2 className="w-3 h-3" /> Dissolve
+                        </button>
+                      )}
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-pixel text-slate-600 mb-1">
-                        Short Tag
-                      </label>
-                      <input
-                        type="text"
-                        defaultValue={override.shortName || subject.shortName}
-                        onBlur={e => onUpdateSettings({
-                          subjectOverrides: { ...s.subjectOverrides, [id]: { ...override, shortName: e.target.value } }
-                        })}
-                        className="w-full bg-white border-2 border-pink-300 rounded px-2.5 py-1 text-slate-900 font-pixel text-xs focus:border-pink-500 focus:outline-none"
-                      />
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-pixel text-slate-600 mb-1">
+                          Full Title
+                        </label>
+                        <input
+                          type="text"
+                          defaultValue={override.name || subject.name}
+                          onBlur={e => onUpdateSettings({
+                            subjectOverrides: { ...s.subjectOverrides, [id]: { ...override, name: e.target.value } }
+                          })}
+                          className="w-full bg-white border-2 border-pink-300 rounded px-2.5 py-1 text-slate-900 font-pixel text-xs focus:border-pink-500 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-pixel text-slate-600 mb-1">
+                          Short Tag
+                        </label>
+                        <input
+                          type="text"
+                          defaultValue={override.shortName || subject.shortName}
+                          onBlur={e => onUpdateSettings({
+                            subjectOverrides: { ...s.subjectOverrides, [id]: { ...override, shortName: e.target.value } }
+                          })}
+                          className="w-full bg-white border-2 border-pink-300 rounded px-2.5 py-1 text-slate-900 font-pixel text-xs focus:border-pink-500 focus:outline-none"
+                        />
+                      </div>
                     </div>
                   </div>
                 );
@@ -482,9 +732,9 @@ export const Settings: React.FC<SettingsProps> = ({
                       onChange={e => setManualSubject(e.target.value as SubjectId)}
                       className="w-full bg-white border border-pink-300 rounded px-2 py-1.5 text-xs font-pixel text-slate-900"
                     >
-                      {SUBJECT_IDS.map(id => (
+                      {(Object.keys(state.subjects) as SubjectId[]).map(id => (
                         <option key={id} value={id}>
-                          {state.subjects[id]?.shortName || id}
+                          {state.subjects[id]?.shortName || id} - {state.subjects[id]?.name || id}
                         </option>
                       ))}
                     </select>

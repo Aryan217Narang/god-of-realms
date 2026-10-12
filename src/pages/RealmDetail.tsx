@@ -5,7 +5,7 @@ import { PixelRealmScene } from '../components/journal/PixelRealmScene';
 import { RelicDisplay } from '../components/journal/RelicDisplay';
 import { VineDecoration } from '../components/journal/VineDecoration';
 import { ProgressBar } from '../components/ui';
-import { getLevelProgress, formatMinutes, REALM_ELEMENTS, getDailyStudyData } from '../utils/gameLogic';
+import { getLevelProgress, formatMinutes, getRealmElements, getDailyStudyData } from '../utils/gameLogic';
 import {
   Flame, Clock, Star, Zap, Lock, CheckCircle2, Play,
   ArrowLeft, Sparkles, Scroll, Landmark
@@ -63,9 +63,14 @@ export const RealmDetail: React.FC<RealmDetailProps> = ({ state, subjectId, onNa
   const lvl = getLevelProgress(subject.xp);
   const sessions = state.sessions.filter(s => s.subjectId === subjectId && s.completed);
   const recentSessions = [...sessions].sort((a, b) => b.startTime.localeCompare(a.startTime)).slice(0, 6);
-  const dailyData = getDailyStudyData(state.sessions.filter(s => s.subjectId === subjectId), 7);
-  const elements = REALM_ELEMENTS[subjectId];
-  const lore = REALM_CHRONICLES[subjectId];
+  const dailyData = getDailyStudyData(state.sessions.filter(s => s.subjectId === subjectId), 7, [subjectId]);
+  const elements = getRealmElements(subjectId);
+  const lore = REALM_CHRONICLES[subjectId] || {
+    sanctumTitle: subject ? `${subject.realmName} — Arcane Sanctum` : 'Sanctum of Knowledge',
+    guardianOrder: 'Order of the Scholar Guardians',
+    epicLore: subject ? subject.description : 'An uncharted territory awaiting your scholarly discipline.',
+    relicPerk: '+15% Discipline Mastery & Insight Generation',
+  };
 
   const worldDev = Math.min(100, Math.round((subject.level / 10) * 100));
 

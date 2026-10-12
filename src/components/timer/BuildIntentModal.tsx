@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { AppState, SubjectId } from '../../types';
-import { REALMS_CONFIG, REALM_BUILD_PROJECTS, type BuildProject } from '../../utils/gameLogic';
+import { getRealmConfig, getRealmBuildProjects, type BuildProject } from '../../utils/gameLogic';
 import { Button } from '../ui';
 import { Hammer, Sparkles, X, Clock, Check } from 'lucide-react';
 
@@ -20,9 +20,9 @@ export const BuildIntentModal: React.FC<BuildIntentModalProps> = ({
   onConfirm,
 }) => {
   const activeSubjectId = subjectId || 'daa';
-  const projects = REALM_BUILD_PROJECTS[activeSubjectId] || [];
-  const subject = state.subjects[activeSubjectId];
-  const config = REALMS_CONFIG[activeSubjectId];
+  const subject = state.subjects[activeSubjectId] || state.subjects.daa;
+  const projects = getRealmBuildProjects(activeSubjectId);
+  const config = getRealmConfig(activeSubjectId, subject);
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [customGoal, setCustomGoal] = useState<string>('');
@@ -66,10 +66,10 @@ export const BuildIntentModal: React.FC<BuildIntentModalProps> = ({
         <div className="flex items-center justify-between px-6 py-4 border-b border-pink-200 bg-gradient-to-r from-pink-50 to-white">
           <div className="flex items-center gap-3">
             <span className="text-2xl p-2 rounded-lg bg-white border border-pink-300 shadow-sm">
-              {activeSubjectId === 'daa' ? '🌲' :
-               activeSubjectId === 'os' ? '⛰️' :
-               activeSubjectId === 'nosql' ? '🏛️' :
-               activeSubjectId === 'hda_cognitive' ? '🧠' : '🏝️'}
+              {subject?.theme === 'forest' ? '🌲' :
+               subject?.theme === 'mountain' ? '⛰️' :
+               subject?.theme === 'ancient-city' ? '🏛️' :
+               subject?.theme === 'sanctuary' ? '🧠' : '🏝️'}
             </span>
             <div>
               <div className="flex items-center gap-2">

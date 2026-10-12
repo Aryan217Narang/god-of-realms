@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { AppState, Subject, SubjectId, StudySession } from '../types';
+import type { AppState, Subject, SubjectId, StudySession, CreateSubjectInput } from '../types';
 import {
   getDefaultState, getLevelFromXp, calculateXpForSession,
   getUnlockedElements, calculateStreak, checkAchievements,
   getSubjectMinutesForPeriod, todayDateString, isSessionToday,
+  createCustomSubject,
 } from '../utils/gameLogic';
 import { apiFetch } from '../services/apiClient';
 
@@ -155,7 +156,11 @@ export function sanitizeSessionsAndRecalculate(state: AppState): AppState {
 
   const defaults = getDefaultState();
   const updatedSubjects: Record<SubjectId, Subject> = { ...state.subjects };
-  const subjectIds = Object.keys(defaults.subjects) as SubjectId[];
+  const subjectIds = Array.from(new Set([
+    ...Object.keys(defaults.subjects),
+    ...Object.keys(updatedSubjects || {}),
+    ...newSessions.map(s => s.subjectId),
+  ])) as SubjectId[];
 
   let subjectMismatch = false;
   for (const id of subjectIds) {
@@ -273,6 +278,15 @@ function loadState(userId?: string | null): AppState {
         shortName: def.shortName,
         name: def.name,
       };
+    }
+    // Also restore any custom subjects created by the user
+    for (const id of Object.keys(storedSubjects)) {
+      if (!defaults.subjects[id as SubjectId]) {
+        const customSub = (storedSubjects as Record<string, any>)[id];
+        if (customSub && customSub.name) {
+          mergedSubjects[id as SubjectId] = customSub;
+        }
+      }
     }
 
     const merged: AppState = {
@@ -918,14 +932,106 @@ export function useStore(userId?: string | null) {
     return true;
   }, [userId]);
 
+  const addSubject = useCallback(async (input: CreateSubjectInput): Promise<Subject | null> => {
+    if (!input.name || !input.shortName) return null;
+    const newSubject = createCustomSubject(input);
+    const current = stateRef.current;
+
+    const nextSubjects: Record<SubjectId, Subject> = {
+      ...current.subjects,
+      [newSubject.id]: newSubject,
+    };
+
+    const nextSettings = {
+      ...current.settings,
+      subjectOverrides: {
+        ...current.settings.subjectOverrides,
+        [newSubject.id]: { name: newSubject.name, shortName: newSubject.shortName },
+      },
+    };
+
+    const next: AppState = {
+      ...current,
+      subjects: nextSubjects,
+      settings: nextSettings,
+    };
+
+    const sanitized = sanitizeSessionsAndRecalculate(next);
+    setState(sanitized);
+    saveState(sanitized, userId);
+
+    if (userId) {
+      setCloudStatus('syncing');
+      try {
+        await apiFetch('/api/state', {
+          method: 'PUT',
+          body: JSON.stringify({ state: sanitized, overwrite: true }),
+        });
+        setCloudStatus('connected');
+      } catch {
+        setCloudStatus('offline');
+      }
+    }
+
+    return newSubject;
+  }, [userId]);
+
+  const deleteSubject = useCallback(async (subjectId: SubjectId): Promise<boolean> => {
+    const current = stateRef.current;
+    const target = current.subjects[subjectId];
+    if (!target || !target.isCustom) return false;
+
+    const nextSubjects = { ...current.subjects };
+    delete nextSubjects[subjectId];
+
+    const nextOverrides = { ...current.settings.subjectOverrides };
+    delete nextOverrides[subjectId];
+
+    const nextSessions = current.sessions.filter(s => s.subjectId !== subjectId);
+
+    const next: AppState = {
+      ...current,
+      subjects: nextSubjects,
+      sessions: nextSessions,
+      settings: {
+        ...current.settings,
+        subjectOverrides: nextOverrides,
+      },
+      timer: current.timer.selectedSubject === subjectId
+        ? { ...current.timer, selectedSubject: null }
+        : current.timer,
+    };
+
+    const sanitized = sanitizeSessionsAndRecalculate(next);
+    setState(sanitized);
+    saveState(sanitized, userId);
+
+    if (userId) {
+      setCloudStatus('syncing');
+      try {
+        await apiFetch('/api/state', {
+          method: 'PUT',
+          body: JSON.stringify({ state: sanitized, overwrite: true }),
+        });
+        setCloudStatus('connected');
+      } catch {
+        setCloudStatus('offline');
+      }
+    }
+
+    return true;
+  }, [userId]);
+
   // Expose on window for immediate DevTools console execution
   useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).clearTodaySessions = clearTodaySessions;
       (window as any).logStudySession = logCompletedSessionDirectly;
       (window as any).recoverStudySession = logCompletedSessionDirectly;
+      (window as any).addSubject = addSubject;
+      (window as any).deleteSubject = deleteSubject;
     }
-  }, [clearTodaySessions, logCompletedSessionDirectly]);
+  }, [clearTodaySessions, logCompletedSessionDirectly, addSubject, deleteSubject]);
 
   return {
     state,
@@ -935,6 +1041,8 @@ export function useStore(userId?: string | null) {
     pullFromCloud,
     clearTodaySessions,
     logCompletedSessionDirectly,
+    addSubject,
+    deleteSubject,
     startTimer,
     pauseTimer,
     resumeTimer,

@@ -45,6 +45,8 @@ export default function App() {
     importData,
     clearTodaySessions,
     logCompletedSessionDirectly,
+    addSubject,
+    deleteSubject,
   } = useStore(auth.user?.id);
 
   // Apply theme
@@ -127,6 +129,8 @@ export default function App() {
             state={state}
             onNavigate={navigate}
             onStartStudy={handleStartStudy}
+            onAddSubject={addSubject}
+            onDeleteSubject={deleteSubject}
           />
         );
       case 'timer':
@@ -158,6 +162,8 @@ export default function App() {
             onResetData={resetAllData}
             onClearToday={clearTodaySessions}
             onLogSessionDirectly={logCompletedSessionDirectly}
+            onAddSubject={addSubject}
+            onDeleteSubject={deleteSubject}
             onExportData={exportData}
             onImportData={importData}
             cloudStatus={cloudStatus}

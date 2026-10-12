@@ -56,7 +56,17 @@ export const REALM_PRESETS: Record<SubjectId, RealmPreset[]> = {
 };
 
 export function getRandomRealmPreset(subjectId: SubjectId): RealmPreset {
-  const list = REALM_PRESETS[subjectId] || REALM_PRESETS.daa;
-  const randomIndex = Math.floor(Math.random() * list.length);
-  return list[randomIndex];
+  const list = REALM_PRESETS[subjectId];
+  if (list && list.length > 0) {
+    const randomIndex = Math.floor(Math.random() * list.length);
+    return list[randomIndex];
+  }
+  const customPresets: RealmPreset[] = [
+    { id: 'custom-1', name: 'Inscribing Core Principles Codex', icon: '📜', category: 'Theory' },
+    { id: 'custom-2', name: 'Forging Deep Knowledge Foundation', icon: '🏛️', category: 'Foundation' },
+    { id: 'custom-3', name: 'Erecting Mastery Pillar', icon: '✨', category: 'Monument' },
+    { id: 'custom-4', name: 'Carving Focus Promenade', icon: '🥾', category: 'Trail' },
+    { id: 'custom-5', name: 'Consecrating Arcane Altar', icon: '🔮', category: 'Sanctuary' },
+  ];
+  return customPresets[Math.floor(Math.random() * customPresets.length)];
 }

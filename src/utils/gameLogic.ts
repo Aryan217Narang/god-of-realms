@@ -1,4 +1,5 @@
-import type { SubjectId, Subject, Achievement, AppState, StudySession, TimeFormat } from '../types';
+import type { SubjectId, Subject, Achievement, AppState, StudySession, TimeFormat, RealmThemeType, CreateSubjectInput } from '../types';
+
 
 // ============================================================
 // XP & Level System
@@ -264,8 +265,16 @@ export function getTotalMinutesForPeriod(
 // Daily Study Data for Charts
 // ============================================================
 
-export function getDailyStudyData(sessions: StudySession[], days: number): { date: string; label: string; total: number; bySubject: Record<SubjectId, number> }[] {
+export function getDailyStudyData(
+  sessions: StudySession[],
+  days: number,
+  allSubjectIds?: SubjectId[]
+): { date: string; label: string; total: number; bySubject: Record<SubjectId, number> }[] {
   const result = [];
+  const baseSubjectIds = allSubjectIds && allSubjectIds.length > 0
+    ? allSubjectIds
+    : ['daa', 'os', 'nosql', 'hda_cognitive', 'gv'];
+
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(Date.now() - i * 86400000);
     const dateStr = d.toISOString().slice(0, 10);
@@ -273,9 +282,18 @@ export function getDailyStudyData(sessions: StudySession[], days: number): { dat
     const daySessions = i === 0
       ? sessions.filter(s => s.completed && isSessionToday(s))
       : sessions.filter(s => s.completed && !isSessionToday(s) && s.startTime.slice(0, 10) === dateStr);
-    const bySubject: Record<string, number> = { daa: 0, os: 0, nosql: 0, hda_cognitive: 0, gv: 0 };
-    daySessions.forEach(s => { bySubject[s.subjectId] = (bySubject[s.subjectId] || 0) + s.durationMinutes; });
-    result.push({ date: dateStr, label, total: daySessions.reduce((sum, s) => sum + s.durationMinutes, 0), bySubject: bySubject as Record<SubjectId, number> });
+    
+    const bySubject: Record<string, number> = {};
+    baseSubjectIds.forEach(id => { bySubject[id] = 0; });
+    daySessions.forEach(s => {
+      bySubject[s.subjectId] = (bySubject[s.subjectId] || 0) + s.durationMinutes;
+    });
+    result.push({
+      date: dateStr,
+      label,
+      total: daySessions.reduce((sum, s) => sum + s.durationMinutes, 0),
+      bySubject: bySubject as Record<SubjectId, number>,
+    });
   }
   return result;
 }
@@ -284,8 +302,24 @@ export function getDailyStudyData(sessions: StudySession[], days: number): { dat
 // Realm Unlock Elements
 // ============================================================
 
+export function getRealmElements(subjectId: SubjectId): Array<{ id: string; name: string; minutesRequired: number; levelRequired: number; description: string }> {
+  if (REALM_ELEMENTS[subjectId]) {
+    return REALM_ELEMENTS[subjectId];
+  }
+  const prefix = String(subjectId).replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  return [
+    { id: `${prefix}_foundation`, name: 'Sanctum Foundation', minutesRequired: 0, levelRequired: 1, description: 'The mystical grounding stone is laid.' },
+    { id: `${prefix}_pathway`, name: 'Pilgrim Pathway', minutesRequired: 30, levelRequired: 1, description: 'Paved walkways guide your daily dedication.' },
+    { id: `${prefix}_spire`, name: 'Scholar Spire', minutesRequired: 60, levelRequired: 2, description: 'An elegant tower radiating discipline.' },
+    { id: `${prefix}_garden`, name: 'Runic Flora', minutesRequired: 100, levelRequired: 2, description: 'Bioluminescent flora blossom in response to study.' },
+    { id: `${prefix}_fountain`, name: 'Fountain of Insight', minutesRequired: 150, levelRequired: 3, description: 'Pure knowledge flows continuously.' },
+    { id: `${prefix}_monument`, name: 'Ascendant Monument', minutesRequired: 250, levelRequired: 4, description: 'A grand monolith honoring unwavering focus.' },
+    { id: `${prefix}_sanctum`, name: 'Master Sanctum', minutesRequired: 400, levelRequired: 5, description: 'The inner chamber of timeless mastery.' },
+  ];
+}
+
 export function getUnlockedElements(subjectId: SubjectId, totalMinutes: number, level: number): string[] {
-  const elements = REALM_ELEMENTS[subjectId];
+  const elements = getRealmElements(subjectId);
   return elements.filter(e => totalMinutes >= e.minutesRequired && level >= e.levelRequired).map(e => e.id);
 }
 
@@ -737,6 +771,75 @@ export const REALMS_CONFIG: Record<SubjectId, {
   },
 };
 
+export function getRealmBuildProjects(subjectId: SubjectId): BuildProject[] {
+  if (REALM_BUILD_PROJECTS[subjectId]) {
+    return REALM_BUILD_PROJECTS[subjectId];
+  }
+  const prefix = String(subjectId).replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+  return [
+    {
+      id: `${prefix}_core_foundations`,
+      name: 'Forge Core Sanctum Pillar',
+      icon: '🏛️',
+      category: 'Foundation',
+      description: 'Establish foundational principles and deep theoretical grounding.',
+      minutesEstimate: 50,
+    },
+    {
+      id: `${prefix}_ancient_monolith`,
+      name: 'Awaken Arcane Monolith',
+      icon: '✨',
+      category: 'Sanctum',
+      description: 'Channel focused study into an enduring monolith of mastery.',
+      minutesEstimate: 50,
+    },
+    {
+      id: `${prefix}_relic_altar`,
+      name: 'Consecrate Relic Altar',
+      icon: '🔮',
+      category: 'Reliquary',
+      description: 'Empower the sacred relic with crystal clarity and persistent focus.',
+      minutesEstimate: 50,
+    },
+    {
+      id: `${prefix}_restoration_arch`,
+      name: 'Expand Realm Borders',
+      icon: '🗺️',
+      category: 'Expansion',
+      description: 'Unveil uncharted territories across the miniature isometric domain.',
+      minutesEstimate: 50,
+    },
+  ];
+}
+
+export function getRealmConfig(subjectId: SubjectId, fallbackSubject?: Subject) {
+  if (REALMS_CONFIG[subjectId]) {
+    return REALMS_CONFIG[subjectId];
+  }
+  const theme: RealmThemeType = fallbackSubject?.theme || 'ancient-city';
+  const themeTypes: Record<RealmThemeType, string> = {
+    'forest': 'Ancient Grove & Forest Realm',
+    'mountain': 'Alpine Mountain & Hiking Trail Realm',
+    'ancient-city': 'Classical Architecture & Stone City Realm',
+    'sanctuary': 'Botanical & Neural Sanctuary Realm',
+    'floating-islands': 'Floating Archipelago & Ley Line Realm',
+  };
+
+  return {
+    id: subjectId,
+    subject: fallbackSubject?.shortName ? `${fallbackSubject.realmName} (${fallbackSubject.shortName})` : `${subjectId}`,
+    title: fallbackSubject?.realmName || `${subjectId} Realm`,
+    realmType: themeTypes[theme] || 'Custom Mythic Realm',
+    description: fallbackSubject?.description || 'A custom realm carved from disciplined scholarly focus.',
+    theme,
+    relic: fallbackSubject?.relic || 'Arcane Relic',
+    relicLore: fallbackSubject?.relicLore || 'An ancient artifact resonating with scholarly dedication.',
+    color: fallbackSubject?.color || '#ec4899',
+    glowColor: fallbackSubject?.glowColor || '#f472b6',
+    darkColor: fallbackSubject?.darkColor || '#831843',
+  };
+}
+
 export function createDefaultSubject(
   id: SubjectId,
   name: string,
@@ -759,6 +862,79 @@ export function createDefaultSubject(
     currentStreak: 0, longestStreak: 0, lastStudiedDate: null,
     unlockedElements: ['daa_sapling', 'os_basecamp', 'nosql_road', 'hda_entrance', 'gv_node1'].filter(e => e.startsWith(id.split('_')[0])),
     studyGoalMinutes: 60,
+  };
+}
+
+export function createCustomSubject(input: CreateSubjectInput): Subject {
+  const cleanId = (input.shortName || input.name || `subj_${Date.now()}`)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+  const id: SubjectId = `subj_${cleanId}_${Date.now().toString(36).slice(-4)}`;
+
+  const theme: RealmThemeType = input.theme || 'ancient-city';
+  const defaultColors: Record<RealmThemeType, { color: string; glow: string; dark: string }> = {
+    'forest': { color: '#22c55e', glow: '#4ade80', dark: '#166534' },
+    'mountain': { color: '#60a5fa', glow: '#93c5fd', dark: '#1e3a5f' },
+    'ancient-city': { color: '#f472b6', glow: '#f9a8d4', dark: '#831843' },
+    'sanctuary': { color: '#a78bfa', glow: '#c4b5fd', dark: '#4c1d95' },
+    'floating-islands': { color: '#fb923c', glow: '#fdba74', dark: '#7c2d12' },
+  };
+
+  const palette = defaultColors[theme] || defaultColors['ancient-city'];
+  const color = input.color || palette.color;
+  const glowColor = input.glowColor || palette.glow;
+  const darkColor = input.darkColor || palette.dark;
+
+  const defaultRelicNames: Record<RealmThemeType, string> = {
+    'forest': 'Grove Heart Gem',
+    'mountain': 'Glacial Peak Scepter',
+    'ancient-city': 'Data Rune Core',
+    'sanctuary': 'Prismatic Mind Crystal',
+    'floating-islands': 'Aether Wing Blade',
+  };
+
+  const defaultRelicLores: Record<RealmThemeType, string> = {
+    'forest': 'Infused with the eternal life force of the wild canopies and sacred boughs.',
+    'mountain': 'Chiseled from frozen high-altitude granite, enduring every storm.',
+    'ancient-city': 'An ancient cylindrical cipher containing the cumulative archives of antiquity.',
+    'sanctuary': 'A luminous mineral that pulses with harmonic focus and serenity.',
+    'floating-islands': 'Suspended on unseen magnetic winds, linking islands of discovery.',
+  };
+
+  const relic = input.relic?.trim() || defaultRelicNames[theme];
+  const relicLore = input.relicLore?.trim() || defaultRelicLores[theme];
+  const realmName = input.realmName?.trim() || `${input.name.trim()} Realm`;
+  const description = input.description?.trim() || `Master ${input.name.trim()} as you restore this mystic isometric sanctuary through dedicated study.`;
+  const studyGoalMinutes = input.studyGoalMinutes && input.studyGoalMinutes > 0 ? input.studyGoalMinutes : 60;
+  const cleanPrefix = id.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+
+  return {
+    id,
+    name: input.name.trim(),
+    shortName: input.shortName.trim().toUpperCase(),
+    realmName,
+    description,
+    theme,
+    relic,
+    relicLore,
+    color,
+    glowColor,
+    darkColor,
+    totalMinutes: 0,
+    todayMinutes: 0,
+    weekMinutes: 0,
+    monthMinutes: 0,
+    xp: 0,
+    level: 1,
+    sessionsCompleted: 0,
+    currentStreak: 0,
+    longestStreak: 0,
+    lastStudiedDate: null,
+    unlockedElements: [`${cleanPrefix}_foundation`],
+    studyGoalMinutes,
+    isCustom: true,
   };
 }
 

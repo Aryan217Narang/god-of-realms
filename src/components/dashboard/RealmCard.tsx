@@ -16,13 +16,14 @@ export const RealmCard: React.FC<RealmCardProps> = ({ subject, onEnterRealm, onS
   const lvlInfo = getLevelProgress(subject.xp);
 
   // Next discovery milestones
-  const discoveries = {
+  const discoveriesMap: Record<string, string> = {
     daa: 'Ancient Knowledge Tree Canopy',
     os: 'Frozen Gate & Summit Observatory',
     nosql: 'Colossal Vault & Data Cascades',
     hda_cognitive: 'Cognitive Brain Portal & Archives',
     gv: 'Celestial Astrolabe & Sky Bridges',
-  }[subject.id];
+  };
+  const discoveries = discoveriesMap[subject.id] || 'Mystic Sanctum Gate';
 
   const worldDevelopment = Math.min(100, Math.round((subject.level / 10) * 100));
 
@@ -43,6 +44,7 @@ export const RealmCard: React.FC<RealmCardProps> = ({ subject, onEnterRealm, onS
       >
         <IsometricRealmPlot
           subjectId={subject.id}
+          theme={subject.theme}
           level={subject.level}
           totalMinutes={subject.totalMinutes}
           width={280}

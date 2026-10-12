@@ -8,14 +8,17 @@ import { ProgressBar } from '../components/ui';
 import { formatMinutes, getLevelProgress } from '../utils/gameLogic';
 import { Play, LogIn, Star, Flame, Sparkles, Compass, Shield, Scroll } from 'lucide-react';
 import type { Page } from '../components/layout/Navigation';
+import { ConstructRealmModal } from '../components/realms/ConstructRealmModal';
+import type { CreateSubjectInput, Subject } from '../types';
+import { Plus, Trash2 } from 'lucide-react';
 
 interface MyRealmsProps {
   state: AppState;
   onNavigate: (page: Page, extra?: string) => void;
   onStartStudy: (subjectId: SubjectId) => void;
+  onAddSubject?: (input: CreateSubjectInput) => Promise<Subject | null>;
+  onDeleteSubject?: (subjectId: SubjectId) => Promise<boolean>;
 }
-
-const SUBJECT_IDS: SubjectId[] = ['daa', 'os', 'nosql', 'hda_cognitive', 'gv'];
 
 const REALM_LORE: Record<SubjectId, { subtitle: string; guardian: string; biome: string; nextDiscovery: string }> = {
   daa: {
@@ -50,12 +53,27 @@ const REALM_LORE: Record<SubjectId, { subtitle: string; guardian: string; biome:
   },
 };
 
-export const MyRealms: React.FC<MyRealmsProps> = ({ state, onNavigate, onStartStudy }) => {
-  const [activeHighlight, setActiveHighlight] = useState<SubjectId>('daa');
-  const highlightedSubject = state.subjects[activeHighlight];
-  const highlightLvl = getLevelProgress(highlightedSubject.xp);
-  const lore = REALM_LORE[activeHighlight];
-  const worldDev = Math.min(100, Math.round((highlightedSubject.level / 10) * 100));
+export const MyRealms: React.FC<MyRealmsProps> = ({ state, onNavigate, onStartStudy, onAddSubject, onDeleteSubject }) => {
+  const subjectIds = Object.keys(state.subjects) as SubjectId[];
+  const [activeHighlight, setActiveHighlight] = useState<SubjectId>(() => subjectIds[0] || 'daa');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const highlightedSubject = state.subjects[activeHighlight] || state.subjects[subjectIds[0]] || state.subjects.daa;
+  const highlightLvl = getLevelProgress(highlightedSubject?.xp || 0);
+
+  const getRealmLore = (id: SubjectId) => {
+    if (REALM_LORE[id]) return REALM_LORE[id];
+    const sub = state.subjects[id];
+    return {
+      subtitle: `${sub?.realmName || 'Sanctum'} • Mystic Realm of Scholarship`,
+      guardian: `${sub?.shortName || 'Sacred'} Guardian`,
+      biome: `Lush ${sub?.theme || 'Arcane'} Lands & Crystal Monuments`,
+      nextDiscovery: 'Ascendant Sanctum Spire',
+    };
+  };
+
+  const lore = getRealmLore(activeHighlight);
+  const worldDev = Math.min(100, Math.round(((highlightedSubject?.level || 1) / 10) * 100));
 
   return (
     <div className="p-4 md:p-8 w-full animate-fade-up max-w-7xl mx-auto bg-[#fff5f8] text-slate-900">
@@ -64,20 +82,32 @@ export const MyRealms: React.FC<MyRealmsProps> = ({ state, onNavigate, onStartSt
         <div>
           <div className="flex items-center gap-2 mb-1 text-[10px] font-pixel text-pink-600 uppercase tracking-wider">
             <Scroll className="w-4 h-4 text-pink-500" />
-            <span>Atlas of Five Worlds</span>
+            <span>Atlas of Mythic Worlds</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-pixel-heading text-pink-950">
-            THE FIVE SACRED REALMS
+            THE SACRED REALMS
           </h1>
           <p className="text-slate-600 text-sm font-pixel mt-1 max-w-2xl">
             Each realm is a living miniature isometric world. Every minute of dedicated study restores the ancient monuments, forges relics, and grows lush vegetation.
           </p>
         </div>
-        <div className="flex items-center gap-3 bg-white border-2 border-pink-200 px-4 py-2.5 rounded shadow-[3px_3px_0px_#fbcfe8]">
-          <Sparkles className="w-4 h-4 text-pink-500" />
-          <div className="text-xs font-pixel">
-            <span className="text-slate-500 block text-[10px] uppercase">Atlas Status</span>
-            <span className="text-pink-600 font-bold">5 of 5 Sanctums Active</span>
+        <div className="flex items-center gap-3">
+          {onAddSubject && (
+            <button
+              type="button"
+              onClick={() => setIsAddModalOpen(true)}
+              className="pixel-btn pixel-btn-pink py-2 px-3.5 flex items-center gap-1.5 text-xs shadow-[3px_3px_0px_#9d174d]"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Awaken Realm</span>
+            </button>
+          )}
+          <div className="flex items-center gap-3 bg-white border-2 border-pink-200 px-4 py-2.5 rounded shadow-[3px_3px_0px_#fbcfe8]">
+            <Sparkles className="w-4 h-4 text-pink-500" />
+            <div className="text-xs font-pixel">
+              <span className="text-slate-500 block text-[10px] uppercase">Atlas Status</span>
+              <span className="text-pink-600 font-bold">{subjectIds.length} Realms Active</span>
+            </div>
           </div>
         </div>
       </div>
@@ -214,8 +244,9 @@ export const MyRealms: React.FC<MyRealmsProps> = ({ state, onNavigate, onStartSt
             <div className="realm-stage-backdrop lg:w-7/12 min-h-[360px] lg:min-h-[440px] bg-gradient-to-b from-[#fff0f5] to-[#fdf2f8] relative overflow-hidden flex items-center justify-center">
               <IsometricRealmPlot
                 subjectId={activeHighlight}
-                level={highlightedSubject.level}
-                totalMinutes={highlightedSubject.totalMinutes}
+                theme={highlightedSubject?.theme}
+                level={highlightedSubject?.level || 1}
+                totalMinutes={highlightedSubject?.totalMinutes || 0}
                 width={500}
                 height={380}
                 animated={true}
@@ -231,10 +262,10 @@ export const MyRealms: React.FC<MyRealmsProps> = ({ state, onNavigate, onStartSt
         </AncientJournalPanel>
       </div>
 
-      {/* Grid of All Five Realms */}
+      {/* Grid of All Realms */}
       <div className="mb-5 flex items-center justify-between">
         <h3 className="text-base font-pixel-heading text-pink-950 flex items-center gap-2">
-          <span>📜</span> ALL FIVE ISOMETRIC WORLDS
+          <span>📜</span> ALL ISOMETRIC WORLDS ({subjectIds.length})
         </h3>
         <span className="text-xs font-pixel text-pink-600 font-bold">
           Click any realm to inspect in atlas
@@ -242,8 +273,9 @@ export const MyRealms: React.FC<MyRealmsProps> = ({ state, onNavigate, onStartSt
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-5">
-        {SUBJECT_IDS.map(id => {
+        {subjectIds.map(id => {
           const subject = state.subjects[id];
+          if (!subject) return null;
           const lvl = getLevelProgress(subject.xp);
           const isSelected = activeHighlight === id;
           const realmWorldDev = Math.min(100, Math.round((subject.level / 10) * 100));
@@ -266,6 +298,7 @@ export const MyRealms: React.FC<MyRealmsProps> = ({ state, onNavigate, onStartSt
               <div className="realm-preview-stage relative h-44 bg-gradient-to-b from-[#fff5f8] to-[#fce7f3] overflow-hidden flex items-center justify-center border-b border-pink-100">
                 <IsometricRealmPlot
                   subjectId={id}
+                  theme={subject.theme}
                   level={subject.level}
                   totalMinutes={subject.totalMinutes}
                   width={260}
@@ -279,6 +312,13 @@ export const MyRealms: React.FC<MyRealmsProps> = ({ state, onNavigate, onStartSt
                   <Star className="w-2.5 h-2.5 text-amber-500 fill-amber-400" />
                   <span>Lv.{subject.level}</span>
                 </div>
+
+                {/* Custom Realm Tag */}
+                {subject.isCustom && (
+                  <div className="absolute top-2 left-2 bg-pink-100 border border-pink-400 px-1.5 py-0.5 rounded text-[8px] font-pixel text-pink-700 font-bold uppercase shadow-xs">
+                    Custom
+                  </div>
+                )}
 
                 {/* Relic badge in corner */}
                 <div className="absolute bottom-2 right-2 z-10">
@@ -352,12 +392,55 @@ export const MyRealms: React.FC<MyRealmsProps> = ({ state, onNavigate, onStartSt
                   >
                     <Play className="w-3 h-3 fill-white" /> Focus
                   </button>
+                  {subject.isCustom && onDeleteSubject && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(`Delete custom realm "${subject.realmName}"?`)) {
+                          onDeleteSubject(id);
+                        }
+                      }}
+                      title="Delete Custom Realm"
+                      className="p-1.5 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           );
         })}
+
+        {/* Construct New Realm Card in Grid */}
+        {onAddSubject && (
+          <button
+            type="button"
+            onClick={() => setIsAddModalOpen(true)}
+            className="bg-pink-50/50 hover:bg-pink-100/70 border-2 border-dashed border-pink-300 hover:border-pink-500 rounded-lg p-6 flex flex-col items-center justify-center gap-3 transition-all cursor-pointer text-pink-700 min-h-[280px] group shadow-[4px_4px_0px_#fbcfe8]"
+          >
+            <div className="w-12 h-12 rounded-full bg-pink-100 group-hover:bg-pink-200 border-2 border-pink-400 flex items-center justify-center text-xl font-bold shadow-xs group-hover:scale-110 transition-transform">
+              <Plus className="w-6 h-6 text-pink-600" />
+            </div>
+            <div className="text-center">
+              <div className="font-pixel-heading text-sm text-pink-900">Construct New Realm</div>
+              <div className="text-[11px] font-pixel text-slate-500 mt-1">Add custom subject & biome</div>
+            </div>
+          </button>
+        )}
       </div>
+
+      {/* Construct Realm Modal */}
+      {onAddSubject && (
+        <ConstructRealmModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onAddSubject={onAddSubject}
+          onCreated={newSub => {
+            setActiveHighlight(newSub.id);
+          }}
+        />
+      )}
     </div>
   );
 };

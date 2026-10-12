@@ -41,9 +41,7 @@ interface TimerProps {
 }
 
 
-const SUBJECT_IDS: SubjectId[] = ['daa', 'os', 'nosql', 'hda_cognitive', 'gv'];
-
-const SUBJECT_THEMES: Record<SubjectId, { short: string; color: string; relic: string; shrine: string }> = {
+const SUBJECT_THEMES: Record<string, { short: string; color: string; relic: string; shrine: string }> = {
   daa: { short: 'Tree Realm (DAA)', color: '#16a34a', relic: 'Algorithmic Axe', shrine: 'Great Tree & Forest Paths' },
   os: { short: 'Mountain Realm (OS)', color: '#0284c7', relic: 'System Guardian Hammer', shrine: 'Snowy Peak & Kernel Campfire' },
   nosql: { short: 'City Ruins (NoSQL)', color: '#db2777', relic: 'Data Relic Blade', shrine: 'Sunken Vault & Neon Spires' },
@@ -99,12 +97,22 @@ export const StudyTimer: React.FC<TimerProps> = ({
 
   // CRITICAL FIX: When timer is idle, currentSubjectId strictly follows selectedSubject!
   const currentSubjectId = isActive ? (timer.selectedSubject || selectedSubject) : selectedSubject;
-  const currentSubject = state.subjects[currentSubjectId];
+  const currentSubject = state.subjects[currentSubjectId] || Object.values(state.subjects)[0];
   const lvl = getLevelProgress(currentSubject.xp);
-  const theme = SUBJECT_THEMES[currentSubjectId];
+  const theme = SUBJECT_THEMES[currentSubjectId] || {
+    short: `${currentSubject.realmName} (${currentSubject.shortName})`,
+    color: currentSubject.color,
+    relic: currentSubject.relic,
+    shrine: `${currentSubject.realmName} Sacred Grounds`,
+  };
 
   // Presets available for currently selected realm
-  const availablePresets = REALM_PRESETS[currentSubjectId] || REALM_PRESETS.daa;
+  const availablePresets = REALM_PRESETS[currentSubjectId] || [
+    { id: `${currentSubjectId}-1`, name: 'Forge Core Knowledge Anchor', icon: '🏛️', category: 'Foundation' },
+    { id: `${currentSubjectId}-2`, name: 'Inscribe Arcane Runes of Mastery', icon: '✨', category: 'Mastery' },
+    { id: `${currentSubjectId}-3`, name: 'Construct Sanctuary Archway', icon: '⛩️', category: 'Sanctuary' },
+    { id: `${currentSubjectId}-4`, name: 'Pave Stepping Stones of Wisdom', icon: '🪨', category: 'Trail' },
+  ];
 
   // Tick interval for remaining time
   useEffect(() => {
@@ -237,12 +245,15 @@ export const StudyTimer: React.FC<TimerProps> = ({
                 <span className="text-xs font-pixel text-slate-800 font-bold uppercase flex items-center gap-1">
                   <span>🗺️</span> Select Realm
                 </span>
-                <span className="text-[10px] font-pixel text-pink-600 font-bold">5 Sacred Worlds</span>
+                <span className="text-[10px] font-pixel text-pink-600 font-bold">
+                  {Object.keys(state.subjects).length} Realms
+                </span>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {SUBJECT_IDS.map(id => {
+                {(Object.keys(state.subjects) as SubjectId[]).map(id => {
                   const sub = state.subjects[id];
+                  if (!sub) return null;
                   const sel = currentSubjectId === id;
                   return (
                     <button
