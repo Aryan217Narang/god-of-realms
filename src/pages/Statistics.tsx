@@ -22,7 +22,7 @@ interface StatsProps {
 
 export const Statistics: React.FC<StatsProps> = ({ state }) => {
   const [period, setPeriod] = useState<7 | 30>(7);
-  const [piePeriod, setPiePeriod] = useState<'today' | '7d' | '30d' | 'all'>('7d');
+  const [piePeriod, setPiePeriod] = useState<'today' | '7d' | '30d' | 'all'>('today');
   const [selectedBarDate, setSelectedBarDate] = useState<string | null>(null);
   const [selectedBarLabel, setSelectedBarLabel] = useState<string | null>(null);
 
@@ -62,20 +62,7 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
     const isToday = label === 'Today' || dateStr === todayDateString();
     return sessions
       .filter(s => s.completed && s.subjectId === subjectId)
-      .filter(s => {
-        if (isToday) return isSessionToday(s);
-        if (isSessionToday(s)) return false;
-        if (s.startTime.slice(0, 10) === dateStr) return true;
-        try {
-          const sd = new Date(s.startTime);
-          const sy = sd.getFullYear();
-          const sm = String(sd.getMonth() + 1).padStart(2, '0');
-          const sday = String(sd.getDate()).padStart(2, '0');
-          return `${sy}-${sm}-${sday}` === dateStr;
-        } catch {
-          return false;
-        }
-      })
+      .filter(s => isToday ? isSessionToday(s) : (!isSessionToday(s) && s.startTime.slice(0, 10) === dateStr))
       .reduce((sum, s) => sum + s.durationMinutes, 0);
   };
 
@@ -371,13 +358,12 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
               maxBarSize={period === 30 ? 16 : 30}
               className="cursor-pointer"
               onClick={(e: any) => {
-                let entry = e?.activePayload?.[0]?.payload;
-                if (!entry && typeof e?.activeTooltipIndex === 'number' && dailyData[e.activeTooltipIndex]) {
-                  entry = dailyData[e.activeTooltipIndex];
-                }
-                if (entry && entry.date) {
-                  setSelectedBarDate(entry.date);
-                  setSelectedBarLabel(entry.label);
+                if (e && e.activePayload && e.activePayload.length > 0) {
+                  const entry = e.activePayload[0].payload;
+                  if (entry && entry.date) {
+                    setSelectedBarDate(entry.date);
+                    setSelectedBarLabel(entry.label);
+                  }
                 }
               }}
             >
@@ -420,11 +406,6 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
                       stroke={isSelected ? '#9d174d' : 'transparent'}
                       strokeWidth={isSelected ? 2.5 : 0}
                       opacity={selectedBarDate ? (isSelected ? 1 : 0.45) : 0.75}
-                      className="cursor-pointer"
-                      onClick={() => {
-                        setSelectedBarDate(entry.date);
-                        setSelectedBarLabel(entry.label);
-                      }}
                     />
                   );
                 })}
@@ -435,7 +416,6 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
                 dataKey="total"
                 stroke="#db2777"
                 strokeWidth={3}
-                style={{ pointerEvents: 'none' }}
                 name={timeFormat.startsWith('hours') ? 'Study Time' : 'Minutes'}
                 dot={{ stroke: '#be185d', strokeWidth: 2.5, r: 5.5, fill: '#ffffff' }}
                 activeDot={{ stroke: '#9d174d', strokeWidth: 3.5, r: 8, fill: '#ec4899' }}
@@ -443,48 +423,6 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
             </ComposedChart>
           </ResponsiveContainer>
 
-          {/* Quick Date Selector Bar */}
-          <div className="mt-3 pt-3 border-t border-pink-100 flex items-center justify-between gap-2 flex-wrap">
-            <span className="text-[10px] font-pixel text-slate-500 uppercase font-bold flex items-center gap-1">
-              <Scroll className="w-3 h-3 text-pink-500" />
-              <span>Inspect Specific Day:</span>
-            </span>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {dailyData.map((d) => {
-                const isSel = selectedBarDate === d.date;
-                const hasStudy = d.total > 0;
-                return (
-                  <button
-                    key={d.date}
-                    type="button"
-                    onClick={() => {
-                      if (isSel) {
-                        setSelectedBarDate(null);
-                        setSelectedBarLabel(null);
-                      } else {
-                        setSelectedBarDate(d.date);
-                        setSelectedBarLabel(d.label);
-                      }
-                    }}
-                    className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer border flex items-center gap-1 ${
-                      isSel
-                        ? 'bg-pink-600 text-white border-pink-700 shadow-sm ring-2 ring-pink-300'
-                        : hasStudy
-                        ? 'bg-pink-100 text-pink-800 border-pink-400 hover:bg-pink-200 shadow-xs'
-                        : 'bg-white text-slate-600 border-pink-200 hover:bg-pink-50'
-                    }`}
-                  >
-                    <span>{d.label}</span>
-                    {hasStudy && (
-                      <span className={`text-[9px] px-1 rounded font-extrabold ${isSel ? 'bg-pink-800 text-white' : 'bg-pink-300 text-pink-900'}`}>
-                        {formatTime(d.total, timeFormat)}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </AncientJournalPanel>
       </div>
 
@@ -614,27 +552,15 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
           variant="stone"
           className="border-pink-300 shadow-[4px_4px_0px_#fbcfe8]"
         >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-pink-200 pb-3">
+          <div className="flex items-center justify-between gap-2 mb-4 border-b border-pink-200 pb-3">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-sm font-pixel-heading text-pink-950">
                   REALM STUDY TIMES
                 </h3>
-                {selectedBarDate ? (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-pink-500 text-white font-bold animate-pulse flex items-center gap-1.5 shadow-xs">
-                    <span>📅 {selectedBarLabel || selectedBarDate}</span>
-                    <button
-                      type="button"
-                      onClick={() => { setSelectedBarDate(null); setSelectedBarLabel(null); }}
-                      className="hover:text-rose-200 text-xs font-bold cursor-pointer"
-                      title="Clear selection"
-                    >
-                      ✕
-                    </button>
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-pink-100 text-pink-700 font-bold border border-pink-300">
-                    {piePeriod === 'today' ? 'Today' : piePeriod === '7d' ? '7 Days' : piePeriod === '30d' ? '30 Days' : 'All Time'}
+                {selectedBarDate && (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-pink-500 text-white font-bold animate-pulse">
+                    📅 {selectedBarLabel || selectedBarDate}
                   </span>
                 )}
               </div>
@@ -643,62 +569,16 @@ export const Statistics: React.FC<StatsProps> = ({ state }) => {
                   ? `Specific study times for ${selectedBarLabel || selectedBarDate}`
                   : piePeriod === 'today'
                   ? "Today's specific study times per subject"
-                  : piePeriod === '7d'
-                  ? "Past 7 days' study times across realms"
-                  : piePeriod === '30d'
-                  ? "Past 30 days' study times across realms"
-                  : 'All-time cumulative study times across realms'}
+                  : 'Specific study times invested in this period'}
               </p>
             </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Period Selector Tabs right on Realm Study Times */}
-              <div className="flex gap-1 bg-pink-50 p-1 rounded border border-pink-200 flex-wrap">
-                {[
-                  { id: 'today', label: 'Today' },
-                  { id: '7d', label: '7 Days' },
-                  { id: '30d', label: '30 Days' },
-                  { id: 'all', label: 'All Time' },
-                ].map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => {
-                      setSelectedBarDate(null);
-                      setSelectedBarLabel(null);
-                      setPiePeriod(p.id as any);
-                    }}
-                    className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold cursor-pointer transition-all ${
-                      !selectedBarDate && piePeriod === p.id
-                        ? 'bg-pink-500 text-white shadow-sm'
-                        : 'text-slate-600 hover:text-pink-700 hover:bg-pink-100'
-                    }`}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="text-right flex-shrink-0 bg-pink-50 px-2.5 py-1 rounded border border-pink-200">
-                <span className="text-[9px] font-pixel text-slate-500 block uppercase font-bold">Total Studied</span>
-                <span className="text-xs font-mono font-bold text-pink-600">
-                  {formatTime(totalPeriodMinutes, timeFormat)}
-                </span>
-              </div>
+            <div className="text-right flex-shrink-0">
+              <span className="text-[10px] font-pixel text-slate-500 block uppercase font-bold">Total Studied</span>
+              <span className="text-sm font-mono font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded border border-pink-200">
+                {formatTime(totalPeriodMinutes, timeFormat)}
+              </span>
             </div>
           </div>
-
-          {totalPeriodMinutes === 0 && (
-            <div className="p-3 mb-3 rounded bg-pink-50/80 border border-pink-200 text-center font-pixel text-xs text-slate-600 flex items-center justify-center gap-2 flex-wrap">
-              <span>🌱 No study time recorded for {selectedBarDate ? selectedBarLabel || selectedBarDate : piePeriod === 'today' ? 'today' : 'this period'}.</span>
-              <button
-                type="button"
-                onClick={() => { setSelectedBarDate(null); setSelectedBarLabel(null); setPiePeriod('7d'); }}
-                className="px-2.5 py-1 rounded bg-pink-600 text-white font-mono text-[11px] font-bold hover:bg-pink-700 cursor-pointer shadow-xs"
-              >
-                View 7 Days ({formatTime(weekMin, timeFormat)})
-              </button>
-            </div>
-          )}
 
           <div className="space-y-2.5">
             {allSubjectTimes.map(sub => {
