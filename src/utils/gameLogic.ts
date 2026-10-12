@@ -52,7 +52,11 @@ export function calculateXpForSession(durationMinutes: number, completed: boolea
 // ============================================================
 
 export function todayDateString(): string {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**
@@ -275,13 +279,30 @@ export function getDailyStudyData(
     ? allSubjectIds
     : ['daa', 'os', 'nosql', 'hda_cognitive', 'gv'];
 
+  const now = new Date();
   for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 86400000);
-    const dateStr = d.toISOString().slice(0, 10);
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const localDateStr = `${year}-${month}-${day}`;
+    const isoDateStr = d.toISOString().slice(0, 10);
     const label = i === 0 ? 'Today' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const daySessions = i === 0
       ? sessions.filter(s => s.completed && isSessionToday(s))
-      : sessions.filter(s => s.completed && !isSessionToday(s) && s.startTime.slice(0, 10) === dateStr);
+      : sessions.filter(s => {
+          if (!s.completed || isSessionToday(s)) return false;
+          if (s.startTime.slice(0, 10) === localDateStr || s.startTime.slice(0, 10) === isoDateStr) return true;
+          try {
+            const sd = new Date(s.startTime);
+            const sy = sd.getFullYear();
+            const sm = String(sd.getMonth() + 1).padStart(2, '0');
+            const sday = String(sd.getDate()).padStart(2, '0');
+            return `${sy}-${sm}-${sday}` === localDateStr;
+          } catch {
+            return false;
+          }
+        });
     
     const bySubject: Record<string, number> = {};
     baseSubjectIds.forEach(id => { bySubject[id] = 0; });
@@ -289,7 +310,7 @@ export function getDailyStudyData(
       bySubject[s.subjectId] = (bySubject[s.subjectId] || 0) + s.durationMinutes;
     });
     result.push({
-      date: dateStr,
+      date: localDateStr,
       label,
       total: daySessions.reduce((sum, s) => sum + s.durationMinutes, 0),
       bySubject: bySubject as Record<SubjectId, number>,
